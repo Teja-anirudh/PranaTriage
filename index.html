@@ -5,8 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PranaTriage • OPD CareTrack</title>
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
-  <script defer src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
-  <script defer src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght:400,500,600,700&display=swap" rel="stylesheet">
@@ -96,11 +94,11 @@
 
     .no-alert {
       all: unset;
-     }
+    }
   </style>
 </head>
 <body class="min-h-screen p-4">
-  
+
   <!-- Header -->
   <header class="mb-8 text-center">
     <h1 class="text-3xl font-bold tracking-tight">PranaTriage • OPD CareTrack</h1>
@@ -336,46 +334,10 @@
 
   <script>
     // ==========================================
-    // FIREBASE CONFIGURATION
-    // ==========================================
-    const firebaseConfig = {
-      apiKey: "AIzaSyC_xxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-      authDomain: "pranatriage-demo.firebaseapp.com",
-      projectId: "pranatriage-demo",
-      storageBucket: "pranatriage-demo.appspot.com",
-      messagingSenderId: "123456789012",
-      appId: "1:1234567890:web:abcdef1234567890abcdef12"
-    };
-
-    // Initialize Firebase
-    let app;
-    let db;
-    
-    try {
-      app = initializeApp(firebaseConfig);
-      db = getFirestore(app);
-      console.log("Firebase initialized successfully");
-    } catch (e) {
-      console.error("Firebase initialization error:", e);
-      // Continue without Firebase - data stays local
-    }
-
-    // ==========================================
-    // STATE MANAGEMENT
-    // ==========================================
-    const STATE = {
-      currentPriority: 0,
-      currentLevel: null,
-      currentRoom: 0,
-      patients: [],
-      nextRoom: 1
-    };
-
-    // ==========================================
     // VALIDATION & SANITIZATION
     // ==========================================
     
-    // Vitals sanitizer
+    // Vitals sanitizer - runs BEFORE any AI or Firebase
     function sanitizeVitals(age, tempF, spo2, pulse, bs, bd) {
       // Convert Fahrenheit to Celsius if > 80°F
       let tempC = tempF;
@@ -397,6 +359,9 @@
         shockIndex = (pulse / systolic).toFixed(2);
       }
       
+      // Detect 0/0 BP (sensor disconnect if patient is talking)
+      let bpDisconnected = (systolic === 0 && diastolic === 0);
+      
       return {
         tempC,
         systolic,
@@ -404,16 +369,17 @@
         shockIndex,
         pulse,
         spo2,
-        age
+        age,
+        bpDisconnected
       };
     }
 
     // ==========================================
-    // ESCALATION OVERRUNS (0ms latency, runs BEFORE any AI)
+    // ESCALATION OVERRIDES (0ms latency, runs BEFORE any AI)
     // ==========================================
     
-    function determinePriority(vitals, symptoms, age, gender) {
-      const { tempC, systolic, diastolic, shockIndex, pulse, spo2 } = vitals;
+    function determinePriority(vitals, symptoms, age) {
+      const { tempC, systolic, diastolic, shockIndex, pulse, spo2, bpDisconnected } = vitals;
       
       // EScalation 1: SpO2 <= 85% OR Shock Index >= 1.4 -> Level 1 (Red)
       if (spo2 <= 85 || (shockIndex !== null && parseFloat(shockIndex) >= 1.4)) {
@@ -498,23 +464,10 @@
       const vitals = sanitizeVitals(age, tempF, spo2, pulse, bs, bd);
       
       // Determine priority using hard-coded escalation overrides
-      const result = determinePriority(vitals, symptoms, age, gender);
+      const result = determinePriority(vitals, symptoms, age);
       
       // Display result card
       displayResultCard(result, vitals, age);
-      
-      // Store patient in Firestore (if available)
-      if (db) {
-        storePatientInFirestore({
-          age,
-          gender,
-          language,
-          vitals: vitals,
-          symptoms,
-          priority: result.level,
-          timestamp: new Date().toISOString()
-        });
-      }
       
       // Add to local queue
       addToQueue(result, { age, gender, language, vitals, symptoms });
@@ -538,7 +491,6 @@
       iconEl.className = 'icon-large';
       
       // Set level text
-      levelEl.innerPriority = `Level ${result.level} (${result.color.toUpperCase()})`;
       levelEl.textContent = `Level ${result.level}`;
       
       // Set description text
@@ -596,7 +548,6 @@
       }
       
       STATE.nextRoom++;
-      STATE.patients.unshift({ ...patientData, priority: result.level });
       
       // Show toast
       showToast(`Patient triaged as Level ${result.level}`, priorityClass);
@@ -636,94 +587,6 @@
     });
 
     // ==========================================
-    // FIRESTORE OPERATIONS
-    // ==========================================
-    
-    function storePatientInFirestore(patientData) {
-      if (!db) return;
-      
-      const patientsCollection = collection(db, 'patients');
-      
-      addDoc(patientsCollection, patientData)
-        .then(() => {
-          console.log("Patient record stored successfully");
-        })
-        .catch((e) => {
-          console.error("Error storing patient record:", e);
-          showToast("Failed to save record", "red");
-        });
-    }
-
-    // Real-time subscription for doctor queue
-    function subscribeToQueue() {
-      if (!db) return;
-      
-      const patientsCollection = collection(db, 'patients');
-      const unsubscribe = onSnapshot(patientsCollection, (snapshot) => {
-        const patients = [];
-        snapshot.forEach((doc) => {
-          const data = doc.data();
-          patients.push({
-            id: doc.id,
-            age: data.age || 0,
-            gender: data.gender || 'Unknown',
-            language: data.language || 'en',
-            vitals: data.vitals || {},
-            symptoms: data.symptoms || [],
-            priority: data.priority || 3,
-            timestamp: data.timestamp || new Date().toISOString()
-          });
-        });
-        
-        STATE.patients = patients.sort((a, b) => {
-          const priorityOrder = { 1: 0, 2: 1, 3: 2, 4: 3, 5: 4 };
-          return priorityOrder[a.priority] - priorityOrder[b.priority];
-        });
-        
-        renderPatientQueue();
-      }, (error) => {
-        console.error("Error subscribing to queue:", error);
-      });
-      
-      // Return unsubscribe function for cleanup
-      return unsubscribe;
-    }
-
-    function renderPatientQueue() {
-      const list = document.getElementById('patient-list');
-      const empty = document.getElementById('empty-state');
-      
-      // Clear existing
-      list.innerHTML = '';
-      
-      if (STATE.patients.length === 0) {
-        empty.classList.remove('hidden');
-        return;
-      }
-      
-      empty.classList.add('hidden');
-      
-      // Render patients sorted by priority
-      STATE.patients.forEach((patient, index) => {
-        const priority = patient.priority;
-        const priorityClass = priority === 1 ? 'level-1' : priority === 2 ? 'level-2' : 'level-3';
-        
-        const li = document.createElement('div');
-        li.className = `patient-item flex items-center py-3 px-4 rounded-lg border-l-4 ${priorityClass} hover:bg-gray-50 transition-colors`;
-        li.innerHTML = `
-          <span class="w-8 text-center font-bold">${index + 1}</span>
-          <div class="flex-1">
-            <p class="font-medium truncate">${patient.age}yr ${patient.gender}</p>
-            <p class="text-xs text-gray-500">${patient.language === 'telugu' ? 'తెలుగు' : patient.language === 'hindi' ? 'हिंदी' : 'English'}</p>
-          </div>
-          <span class="text-sm font-bold ${priorityClass}">${priority}</span>
-        `;
-        
-        list.appendChild(li);
-      });
-    }
-
-    // ==========================================
     // TOAST NOTIFICATIONS
     // ==========================================
     
@@ -750,8 +613,8 @@
     // BINDINGS
     // ==========================================
     
-    // Process triage when form is submitted or button clicked
-    const processBtn = document.querySelector('button:contains("Print Token)') || document.querySelector('button:contains("Send to Nurse)') ;
+    // Process triage
+    const processBtn = document.getElementById('abstention-btn'); // Will use Enter key
     
     // Tab switching
     const tabBtns = document.querySelectorAll('.tab-btn');
@@ -761,7 +624,7 @@
         const tab = btn.dataset.tab;
         
         // Update active tab
-        tabBtns.forEach(b => b.classList.remove('bg-purple-600', 'text-white', 'border-purple-600'));
+        tabBtns.forEach(b => b.classList.remove('bg-purple-600', 'text-white'));
         btn.classList.add('bg-purple-600', 'text-white');
         
         // Show/hide tabs
