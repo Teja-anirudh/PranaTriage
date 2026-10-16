@@ -403,13 +403,24 @@
         return { level: 2, color: "orange", room: "Neurology", icon: "🧠", description: "Stroke signs detected - Neurology consultation required" };
       }
       
-      // Default priority based on vitals
-      if (spo2 <= 95) {
-        return { level: 2, color: "orange", room: "General", icon: "🫁", description: "Mild respiratory concern - Further assessment needed" };
+      // Level 2: Mild respiratory concern / fever (Orange)
+      const tempNum = parseFloat(tempC);
+      if (spo2 <= 95 || tempNum > 38.5) {
+        return { level: 2, color: "orange", room: "General", icon: "🫁", description: "Mild respiratory concern / fever - Further assessment needed" };
       }
       
-      // Level 3 (Yellow) - stable
-      return { level: 3, color: "yellow", room: "General Ward", icon: "🏥", description: "Stable - Routine assessment" };
+      // Level 3: Semi-urgent (Yellow) - borderline vitals
+      if (spo2 <= 98 || pulse > 110 || pulse < 50 || tempNum > 38.0 || tempNum < 35.0) {
+        return { level: 3, color: "yellow", room: "General Ward", icon: "🏥", description: "Semi-urgent - Routine assessment with monitoring" };
+      }
+
+      // Level 4: Non-urgent (Green) - stable vitals
+      if (spo2 <= 100 && pulse >= 50 && pulse <= 110 && tempNum >= 35.0 && tempNum <= 38.0) {
+        return { level: 4, color: "green", room: "OPD", icon: "🩺", description: "Non-urgent - Stable vitals, routine OPD consultation" };
+      }
+
+      // Level 5: Stable / follow-up (Blue)
+      return { level: 5, color: "blue", room: "Follow-up", icon: "📋", description: "Stable - Follow-up / routine checkup" };
     }
 
     // ==========================================
@@ -511,7 +522,7 @@
       const empty = document.getElementById('empty-state');
       
       // Create list item
-      const priorityClass = result.level === 1 ? 'level-1' : result.level === 2 ? 'level-2' : 'level-3';
+      const priorityClass = result.level === 1 ? 'level-1' : result.level === 2 ? 'level-2' : result.level === 3 ? 'level-3' : result.level === 4 ? 'level-4' : 'level-5';
       
       const li = document.createElement('div');
       li.className = `patient-item flex items-center py-3 px-4 rounded-lg border-l-4 ${priorityClass} hover:bg-gray-50 transition-colors`;
@@ -530,8 +541,8 @@
         empty.classList.add('hidden');
       } else {
         // Sort by priority level (1 first, then 2, then 3)
-        const priorityOrder = { 1: 0, 2: 1, 3: 2 };
-        const newPriority = priorityOrder[result.level] || 2;
+        const priorityOrder = { 1: 0, 2: 1, 3: 2, 4: 3, 5: 4 };
+        const newPriority = priorityOrder[result.level] || 4;
         
         let inserted = false;
         for (let i = 0; i < list.children.length; i++) {
