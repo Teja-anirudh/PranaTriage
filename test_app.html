@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Prana Priority Test Page</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    .test-result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+    .pass { background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+    .fail { background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+    .test-section { margin-bottom: 30px; }
+  </style>
+</head>
+<body>
+  <h1>Prana Priority App Test</h1>
+  
+  <div id="test-results">
+    <div class="test-section">
+      <h2>Core Triage Functions Test</h2>
+      <div id="core-tests">Loading...</div>
+    </div>
+    
+    <div class="test-section">
+      <h2>Evaluation Engine Test</h2>
+      <div id="evaluation-tests">Loading...</div>
+    </div>
+  </div>
+  
+  <script>
+    function runCoreTests() {
+      const resultsDiv = document.getElementById('core-tests');
+      let html = '';
+      
+      // Test 1: Check if triage function exists
+      if (typeof triage === 'function') {
+        html += '<div class="test-result pass">✅ triage function exists</div>';
+        
+        // Test SpO2 84
+        const result = triageWithCost({
+          age: 45,
+          gender: 'Male',
+          complaint: 'shortness of breath, SpO2 82%',
+          spo2: 84,
+          pulse: 95,
+          sbp: 120,
+          dbp: 80,
+          temp: 98.6
+        });
+        
+        if (result.level === 1) {
+          html += '<div class="test-result pass">✅ SpO2 84 correctly gives Level 1</div>';
+        } else {
+          html += '<div class="test-result fail">❌ SpO2 84 gave Level ' + result.level + '</div>';
+        }
+        
+      } else {
+        html += '<div class="test-result fail">❌ triage function missing</div>';
+      }
+      
+      resultsDiv.innerHTML = html;
+    }
+    
+    function runEvaluationTests() {
+      const resultsDiv = document.getElementById('evaluation-tests');
+      let html = '';
+      
+      if (typeof evaluation !== 'undefined') {
+        html += '<div class="test-result pass">✅ Evaluation engine loaded</div>';
+        
+        // Check if evaluation functions exist
+        if (typeof evaluation.loadTestDataset === 'function') {
+          html += '<div class="test-result pass">✅ evaluation.loadTestDataset exists</div>';
+        } else {
+          html += '<div class="test-result fail">❌ evaluation.loadTestDataset missing</div>';
+        }
+        
+        if (typeof evaluation.runEvaluation === 'function') {
+          html += '<div class="test-result pass">✅ evaluation.runEvaluation exists</div>';
+        } else {
+          html += '<div class="test-result fail">❌ evaluation.runEvaluation missing</div>';
+        }
+        
+      } else {
+        html += '<div class="test-result fail">❌ Evaluation engine not loaded</div>';
+      }
+      
+      resultsDiv.innerHTML = html;
+    }
+    
+    // Run tests when page loads
+    window.addEventListener('DOMContentLoaded', () => {
+      runCoreTests();
+      setTimeout(runEvaluationTests, 1000);
+    });
+  </script>
+</body>
+</html>
