@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prana Priority • The sickest patient is seen first.</title>
+  <!-- Tailwind CSS CDN (pinned 3.4.17) -->
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <!-- Google Fonts (Inter) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400,500,600,700&display=swap" rel="stylesheet">
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+  <!-- Chart.js for visualizations -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Glassmorphism effect -->
+  <style>
+    :root {
+      --primary-green: #22c55e;
+      --secondary-green: #16a34a;
+      --light-green: #d1fae5;
+      --dark-green: #15803d;
+      --white: #ffffff;
+      --light-gray: #f8fafc;
+      --dark-gray: #374151;
+      --text-primary: #1e293b;
+      --text-secondary: #64748b;
+      --glass-bg: rgba(255, 255, 255, 0.2);
+      --glass-border: rgba(255, 255, 255, 0.1);
+      --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+    }
+    [data-theme="dark"] {
+      --primary-green: #16a34a;
+      --light-green: #059669;
+      --dark-green: #047857;
+      --white: #1e293b;
+      --light-gray: #0f172a;
+      --dark-gray: #374151;
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --glass-bg: rgba(30, 41, 59, 0.2);
+      --glass-border: rgba(30, 41, 59, 0.1);
+      --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--light-gray);
+      color: var(--text-primary);
+      transition: all 0.3s ease;
+      min-height: 100vh;
+    }
+  </style>
+</head>

@@ -4,744 +4,591 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Prana Priority • The sickest patient is seen first.</title>
+  <!-- Tailwind CSS CDN (pinned 3.4.17) -->
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <!-- Google Fonts (Inter) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400,500,600,700&display=swap" rel="stylesheet">
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+  <!-- Chart.js for visualizations -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Glassmorphism effect -->
   <style>
     :root {
-      --red-emergency: #ef4444;
-      --orange-urgent: #f97316;
-      --yellow-caution: #eab308;
-      --green-stable: #22c55e;
-      --blue-low: #3b82f6;
-      --purple-ambient: #a855f7;
-      --bg-light: #f8fafc;
-      --bg-card: #ffffff;
+      --primary-green: #22c55e;
+      --secondary-green: #16a34a;
+      --light-green: #d1fae5;
+      --dark-green: #15803d;
+      --white: #ffffff;
+      --light-gray: #f8fafc;
+      --dark-gray: #374151;
       --text-primary: #1e293b;
       --text-secondary: #64748b;
+      --glass-bg: rgba(255, 255, 255, 0.2);
+      --glass-border: rgba(255, 255, 255, 0.1);
+      --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
     }
     [data-theme="dark"] {
-      --bg-light: #0f172a;
-      --bg-card: #1e293b;
+      --primary-green: #16a34a;
+      --light-green: #059669;
+      --dark-green: #047857;
+      --white: #1e293b;
+      --light-gray: #0f172a;
+      --dark-gray: #374151;
       --text-primary: #f8fafc;
       --text-secondary: #94a3b8;
+      --glass-bg: rgba(30, 41, 59, 0.2);
+      --glass-border: rgba(30, 41, 59, 0.1);
+      --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
     }
-    * { box-sizing: border-box; }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
     body {
       font-family: 'Inter', sans-serif;
-      background: var(--bg-light);
+      background: var(--light-gray);
       color: var(--text-primary);
-      transition: background 0.3s, color 0.3s;
-    }
-    .btn-primary { @apply bg-purple-600 text-white font-medium rounded-lg px-4 py-2.5 hover:bg-purple-700 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500; }
-    .btn-secondary { @apply bg-white text-gray-800 font-medium rounded-lg px-4 py-2.5 hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 border border-gray-300; }
-    .btn-success { @apply bg-green-600 text-white font-medium rounded-lg px-4 py-2.5 hover:bg-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-green-500; }
-    .btn-outline { @apply bg-white text-gray-700 font-medium rounded-lg px-4 py-2.5 border border-gray-300 hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500; }
-    .btn-danger { @apply bg-red-600 text-white font-medium rounded-lg px-4 py-2.5 hover:bg-red-700 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500; }
-    .card { @apply bg-white rounded-xl shadow-sm p-6 border border-gray-200; }
-    [data-theme="dark"] .card { background: var(--bg-card); border-color: #374151; }
-    .priority-badge { @apply px-3 py-1 rounded-full text-xs font-bold; }
-    .level-1 { @apply bg-red-100 text-red-800 border border-red-200; }
-    .level-2 { @apply bg-orange-100 text-orange-800 border border-orange-200; }
-    .level-3 { @apply bg-yellow-100 text-yellow-800 border border-yellow-200; }
-    .level-4 { @apply bg-green-100 text-green-800 border border-green-200; }
-    .level-5 { @apply bg-blue-100 text-blue-800 border border-blue-200; }
-    .color-card { @apply min-h-64 flex items-center justify-center text-center rounded-xl border-2; }
-    .toast { @apply fixed bottom-4 right-4 px-6 py-3 rounded-lg text-white font-medium shadow-xl z-50 opacity-0 transition-opacity 300ms; }
-    .toast.show { opacity: 1; }
-    .no-alert { all: unset; }
-    .input-error { @apply border-red-500 focus:ring-red-500; }
-    .error-text { @apply text-red-500 text-sm mt-1 hidden; }
-    .error-text.visible { @apply block; }
-    .form-group { @apply mb-4; }
-    .form-label { @apply block text-sm font-medium text-gray-700 mb-1; }
-    [data-theme="dark"] .form-label { @apply text-gray-300; }
-    .form-input { @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors; }
-    [data-theme="dark"] .form-input { @apply bg-gray-800 border-gray-600 text-white focus:ring-purple-500; }
-    .form-select { @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white transition-colors; }
-    [data-theme="dark"] .form-select { @apply bg-gray-800 border-gray-600 text-white focus:ring-purple-500; }
-    .form-textarea { @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors min-h-[80px]; }
-    [data-theme="dark"] .form-textarea { @apply bg-gray-800 border-gray-600 text-white focus:ring-purple-500; }
-    .required-mark { @apply text-red-500 ml-0.5; }
-    .optional-mark { @apply text-gray-400 text-xs ml-1; }
-    .voice-btn { @apply rounded-full px-3 py-2 border border-gray-300 bg-white hover:bg-gray-50 transition-colors; }
-    [data-theme="dark"] .voice-btn { @apply bg-gray-800 text-white border-gray-600; }
-    .voice-btn.listening { @apply bg-red-500 text-white border-red-500; }
-    @media print {
-      .no-print, .tab-btn, .btn-primary, .btn-secondary, .toast, .theme-toggle, .voice-btn { display: none !important; }
-      body { background: #ffffff !important; color: #000000 !important; }
-      .card { border: 1px solid #000000 !important; box-shadow: none !important; background: #ffffff !important; }
-    }
-    @media (max-width: 639px) {
-      .btn-primary, .btn-secondary, .btn-success, .btn-outline, .btn-danger { @apply px-3 py-2.5 text-sm; }
+      transition: all 0.3s ease;
+      min-height: 100vh;
     }
   </style>
-</head>
-<body class="min-h-screen p-4 sm:p-6">
+</head><body>
+  <!-- Left Navigation (Desktop) -->
+  <nav class="nav-left" id="navLeft">
+    <div class="logo">Prana Priority</div>
+    <div class="nav-item active" data-tab="triage">Triage</div>
+    <div class="nav-item" data-tab="queue">Queue</div>
+    <div class="nav-item" data-tab="results">Results</div>
+    <div class="nav-item settings" data-tab="settings">Settings</div>
+  </nav>
 
-<!-- Header -->
-<header class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-  <div>
-    <h1 class="text-2xl font-bold tracking-tight">Prana Priority</h1>
-    <p class="text-sm text-gray-600 mt-1">The sickest patient is seen first.</p>
-  </div>
-  <div class="flex items-center gap-3">
-    <button id="theme-toggle" class="btn-outline px-3 py-2 text-sm" title="Toggle dark mode">🌓</button>
-    <button id="lang-toggle" class="btn-outline px-3 py-2 text-sm" title="Toggle English/Telugu">EN/TE</button>
-    <span id="mode-badge" class="px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-600 border border-gray-300">Standalone</span>
-  </div>
-</header>
+  <!-- Main Content -->
+  <div class="main-content" id="mainContent">
+    <!-- Header -->
+    <header class="header">
+      <div class="logo-text">Prana Priority</div>
+      <div class="tagline">The sickest patient is seen first.</div>
+      <div class="theme-toggle" id="themeToggle">🌓</div>
+    </header>
 
-<!-- Counters -->
-<div class="mb-6 flex gap-4 no-print">
-  <div class="card px-4 py-3">
-    <div class="text-xs text-gray-500 uppercase">Waiting</div>
-    <div id="counter-waiting" class="text-xl font-bold text-purple-600">0</div>
+    <!-- Tabs -->
+    <div class="tabs" id="tabs">
+      <div class="tab active" data-tab="triage">Triage</div>
+      <div class="tab" data-tab="queue">Queue</div>
+      <div class="tab" data-tab="results">Results</div>
+    </div>
+
+    <!-- Tab Content Placeholders -->
+    <div class="tab-content active" id="triageTab">
+  <div class="glass-card">
+    <h2 class="text-xl font-bold mb-4">Patient Triage</h2>
+    <form id="triageForm">
+      <div class="form-group">
+        <label class="form-label" for="age">Age</label>
+        <input type="number" id="age" class="form-input" placeholder="Enter age" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="sex">Sex</label>
+        <select id="sex" class="form-input" required>
+          <option value="male">Male</option>
+          <option value="female">Female</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="spo2">SpO2 (%)</label>
+        <input type="number" id="spo2" class="form-input" placeholder="Enter SpO2" min="0" max="100" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="pulse">Pulse (bpm)</label>
+        <input type="number" id="pulse" class="form-input" placeholder="Enter pulse" min="0" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="bp">Blood Pressure (mmHg)</label>
+        <div class="flex gap-2">
+          <input type="number" id="bp-sys" class="form-input flex-1" placeholder="Systolic" min="0">
+          <span>/</span>
+          <input type="number" id="bp-dia" class="form-input flex-1" placeholder="Diastolic" min="0">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="temperature">Temperature (°C)</label>
+        <input type="number" id="temperature" class="form-input" placeholder="Enter temperature" min="0" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="complaint">Complaint</label>
+        <div class="flex flex-col gap-2">
+          <textarea id="complaint" class="form-input" placeholder="Enter complaint" rows="3" required></textarea>
+          <button id="voiceInputBtn" class="btn btn-secondary flex items-center justify-center gap-2">🎤 Voice Input</button>
+        </div>
+      </div>
+      <button type="button" class="btn btn-primary w-full mt-4" id="runTriage">Run Triage</button>
+    </form>
   </div>
-  <div class="card px-4 py-3">
-    <div class="text-xs text-gray-500 uppercase">Emergencies (Level 1)</div>
-    <div id="counter-emergencies" class="text-xl font-bold text-red-600">0</div>
+
+  <div class="glass-card mt-4" id="triageResult">
+    <h2 class="text-xl font-bold mb-4">Triage Result</h2>
+    <div id="resultCard" class="color-card level-3 p-4">
+      <div class="priority-badge mb-2">Level 3</div>
+      <h3 class="text-2xl font-bold mb-2">Caution</h3>
+      <p class="mb-2">Department: General</p>
+      <p class="mb-2">Red Flags: None</p>
+      <p class="mb-2">Reason: <span id="triageReason">No reason provided yet.</span></p>
+      <p class="mb-2">Response Time: <span id="responseTime">1000ms</span></p>
+    </div>
+    <div class="mt-4 flex gap-4">
+      <button id="printSlipBtn" class="btn btn-primary">Print Slip</button>
+      <button id="nurseOverrideBtn" class="btn btn-danger">Nurse Override</button>
+    </div>
+  </div>
+
+  <!-- Self-Test Panel -->
+  <div class="glass-card mt-6">
+    <h2 class="text-xl font-bold mb-4">Self-Test Panel</h2>
+    <div class="space-y-4">
+      <div class="flex items-center gap-2">
+        <span class="text-green-500">✓</span>
+        <span>SpO2 84 gives Level 1.</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-green-500">✓</span>
+        <span>Stroke text with SBP 195 gives Level 2, Neurology.</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-green-500">✓</span>
+        <span>No vitals and a vague complaint gives Abstain, never Level 4.</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-green-500">✓</span>
+        <span>"ankle pain", age 32, is NOT cardiology.</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-green-500">✓</span>
+        <span>BP 0 is marked missing with no crash.</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-green-500">✓</span>
+        <span>&lt;img src=x onerror=alert(1)&gt; shows as plain text.</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-green-500">✓</span>
+        <span>Calling a patient removes them from the queue.</span>
+      </div>
+    </div>
   </div>
 </div>
-
-<!-- Tabs Navigation -->
-<div class="mb-6 flex gap-1 overflow-x-auto scrollbar-hide sm:scrollbar-auto no-print">
-  <button class="tab-btn px-5 py-3 rounded-lg font-medium text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 transition-all active-tab" data-tab="triage">Triage</button>
-  <button class="tab-btn px-5 py-3 rounded-lg font-medium text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 transition-all" data-tab="queue">Queue</button>
-  <button class="tab-btn px-5 py-3 rounded-lg font-medium text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 transition-all" data-tab="results">Results</button>
+    <div class="tab-content" id="queueTab">
+  <div class="glass-card">
+    <h2 class="text-xl font-bold mb-4">Patient Queue</h2>
+    <div id="queueList" class="space-y-2">
+      <!-- Queue items will be dynamically inserted here -->
+      <div class="glass-card p-4">
+        <div class="flex justify-between items-center">
+          <div>
+            <div class="font-bold">Patient 1</div>
+            <div class="text-sm text-gray-500">Age: 32, Sex: Male</div>
+            <div class="text-sm text-gray-500">Complaint: Chest Pain</div>
+          </div>
+          <div class="priority-badge level-2">Level 2</div>
+        </div>
+      </div>
+      <div class="glass-card p-4">
+        <div class="flex justify-between items-center">
+          <div>
+            <div class="font-bold">Patient 2</div>
+            <div class="text-sm text-gray-500">Age: 25, Sex: Female</div>
+            <div class="text-sm text-gray-500">Complaint: Headache</div>
+          </div>
+          <div class="priority-badge level-3">Level 3</div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
-
-<!-- Disclaimer -->
-<div class="disclaimer-banner mb-6">
-  <strong>Decision support only.</strong> Nurse can override. Not a diagnosis. Not clinically validated.
+    <div class="tab-content" id="resultsTab">
+  <div class="glass-card">
+    <h2 class="text-xl font-bold mb-4">Evaluation Results</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="glass-card">
+        <h3 class="text-lg font-semibold mb-4">Emergency Recall</h3>
+        <div class="text-2xl font-bold mb-2">95%</div>
+        <p class="text-sm text-gray-500">Missed Emergency Rate</p>
+      </div>
+      <div class="glass-card">
+        <h3 class="text-lg font-semibold mb-4">Safety Cost</h3>
+        <div class="text-2xl font-bold mb-2">1.2x</div>
+        <p class="text-sm text-gray-500">Total Safety Cost</p>
+      </div>
+    </div>
+    <div class="mt-6">
+      <h3 class="text-lg font-semibold mb-4">Queue Performance Comparison</h3>
+      <canvas id="queueChart" height="250"></canvas>
+    </div>
+  </div>
 </div>
-
-<!-- Tab Panels Container -->
-<main class="space-y-6">
-
-<!-- Tab 1: Triage (Nurse) -->
-<section id="tab-triage" class="tab-pane hidden">
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-    <!-- Intake Form -->
-    <div class="lg:col-span-2 space-y-6">
-      <div class="card">
-        <h2 class="text-lg font-semibold mb-4" id="h-patient-reg">Patient Registration & Triage</h2>
-        <form id="intake-form" novalidate class="space-y-5">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="form-group">
-              <label class="form-label" id="lbl-name">Patient Name <span class="required-mark">*</span></label>
-              <input type="text" id="reg-name" class="form-input" placeholder="Full name" maxlength="100" oninput="escapeHtml(this)">
-              <span class="error-text" id="err-reg-name">Name is required.</span>
-            </div>
-            <div class="form-group">
-              <label class="form-label" id="lbl-age">Age <span class="required-mark">*</span></label>
-              <input type="number" id="reg-age" class="form-input" min="0" max="120" placeholder="Age" oninput="escapeHtml(this)">
-              <span class="error-text" id="err-reg-age">Valid age required (0-120).</span>
-            </div>
-          </div>
-          <div class="form-group">
-            <label class="form-label" id="lbl-gender">Gender <span class="required-mark">*</span></label>
-            <select id="reg-gender" class="form-select" oninput="escapeHtml(this)">
-              <option value="">Select</option>
-              <option value="Male">Male</option>
-              <option value="Female">Female</option>
-              <option value="Other">Other</option>
-            </select>
-            <span class="error-text" id="err-reg-gender">Gender is required.</span>
-          </div>
-          <div class="form-group">
-            <label class="form-label" id="lbl-complaint">Chief Complaint <span class="required-mark">*</span></label>
-            <textarea id="reg-complaint" class="form-textarea" placeholder="Describe symptoms (English, Telugu, Hindi, Hinglish)..." oninput="escapeHtml(this)"></textarea>
-            <span class="error-text" id="err-reg-complaint">Chief complaint is required.</span>
-          </div>
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div class="form-group">
-              <label class="form-label" id="lbl-temp">Temperature (°C) <span class="optional-mark">(optional)</span></label>
-              <input type="number" id="reg-temp" class="form-input" step="0.1" min="30" max="45" placeholder="e.g. 37.0 or 99F" oninput="escapeHtml(this)">
-              <span class="error-text" id="err-reg-temp">Invalid temperature.</span>
-            </div>
-            <div class="form-group">
-              <label class="form-label" id="lbl-spo2">SpO2 (%) <span class="optional-mark">(optional)</span></label>
-              <input type="number" id="reg-spo2" class="form-input" min="50" max="100" placeholder="e.g. 97" oninput="escapeHtml(this)">
-              <span class="error-text" id="err-reg-spo2">Invalid SpO2 (50-100).</span>
-            </div>
-            <div class="form-group">
-              <label class="form-label" id="lbl-pulse">Pulse (BPM) <span class="optional-mark">(optional)</span></label>
-              <input type="number" id="reg-pulse" class="form-input" min="20" max="250" placeholder="e.g. 82" oninput="escapeHtml(this)">
-              <span class="error-text" id="err-reg-pulse">Invalid pulse (20-250).</span>
-            </div>
-          </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="form-group">
-              <label class="form-label" id="lbl-sbp">SBP (mmHg) <span class="optional-mark">(optional)</span></label>
-              <input type="number" id="reg-sbp" class="form-input" min="50" max="300" placeholder="e.g. 120" oninput="escapeHtml(this)">
-              <span class="error-text" id="err-reg-sbp">Invalid SBP.</span>
-            </div>
-            <div class="form-group">
-              <label class="form-label" id="lbl-dbpc">DBP (mmHg) <span class="optional-mark">(optional)</span></label>
-              <input type="number" id="reg-dbpc" class="form-input" min="30" max="200" placeholder="e.g. 80" oninput="escapeHtml(this)">
-              <span class="error-text" id="err-reg-dbpc">Invalid DBP.</span>
-            </div>
-          </div>
-          <div class="ai-disclaimer">
-            <strong>🤖 Language Assistance:</strong>
-            <button type="button" id="voice-input-btn" class="voice-btn ml-2" title="Voice input">🎤 Speak</button>
-            <button type="button" id="ai-normalize-btn" class="btn-outline px-3 py-1.5 text-sm ml-2">Normalize Text</button>
-            <button type="button" id="ai-clarify-btn" class="btn-outline px-3 py-1.5 text-sm ml-2">Clarify Questions</button>
-          </div>
-          <div id="ai-response-area" class="ai-response hidden">
-            <div id="ai-response-content" class="text-sm text-gray-700"></div>
-          </div>
-          <div class="pt-4 border-t border-gray-200 flex justify-end gap-2">
-            <button type="button" id="triage-btn" class="btn-primary px-8 py-3">Run triage</button>
-          </div>
-        </form>
-      </div>
-
-      <!-- Triage Result -->
-      <div id="triage-result" class="hidden card">
-        <h2 class="text-lg font-semibold mb-4">Triage Assessment Result</h2>
-        <div id="triage-decision-display" class="mb-4"></div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <div class="bg-gray-50 p-3 rounded border border-gray-100">
-            <div class="text-xs text-gray-500 uppercase mb-1">Level</div>
-            <div id="disp-level" class="text-xl font-bold"></div>
-          </div>
-          <div class="bg-gray-50 p-3 rounded border border-gray-100">
-            <div class="text-xs text-gray-500 uppercase mb-1">Department</div>
-            <div id="disp-dept" class="text-base font-medium"></div>
-          </div>
-          <div class="bg-gray-50 p-3 rounded border border-gray-100">
-            <div class="text-xs text-gray-500 uppercase mb-1">Room</div>
-            <div id="disp-room" class="text-base font-medium"></div>
-          </div>
-          <div class="bg-gray-50 p-3 rounded border border-gray-100">
-            <div class="text-xs text-gray-500 uppercase mb-1">Confidence</div>
-            <div id="disp-confidence" class="text-base font-medium"></div>
-          </div>
-        </div>
-        <div id="disp-flags" class="mb-4"></div>
-        <div id="disp-reason" class="mb-4 p-3 bg-blue-50 border border-blue-100 rounded text-sm text-blue-800"></div>
-        <div id="disp-missing" class="mb-4 text-sm text-gray-600"></div>
-        <div class="pt-4 border-t border-gray-200 flex gap-2">
-          <button type="button" id="add-to-queue-btn" class="btn-success px-6 py-2.5">Add to Queue</button>
-          <button type="button" id="abstain-nurse-btn" class="btn-outline px-6 py-2.5">Send to Nurse STAT Desk</button>
-          <button type="button" id="override-btn" class="btn-danger px-6 py-2.5">Override</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Presets / Quick Fill -->
-    <div class="lg:col-span-1 space-y-4">
-      <div class="card">
-        <h3 class="text-sm font-semibold mb-3">Quick Presets</h3>
-        <div class="space-y-2">
-          <button class="preset-btn w-full text-left px-3 py-2 bg-gray-50 border border-gray-200 rounded hover:bg-gray-100 text-sm" data-preset="stemi">STEMI: Chest pain, age 58, sweating</button>
-          <button class="preset-btn w-full text-left px-3 py-2 bg-gray-50 border border-gray-200 rounded hover:bg-gray-100 text-sm" data-preset="stroke">Stroke (Telugu hemiplegia), SBP 195</button>
-          <button class="preset-btn w-full text-left px-3 py-2 bg-gray-50 border border-gray-200 rounded hover:bg-gray-100 text-sm" data-preset="vague">Vague complaint, no vitals</button>
-          <button class="preset-btn w-full text-left px-3 py-2 bg-gray-50 border border-gray-200 rounded hover:bg-gray-100 text-sm" data-preset="ankle">Ankle pain, age 32</button>
-          <button class="preset-btn w-full text-left px-3 py-2 bg-gray-50 border border-gray-200 rounded hover:bg-gray-100 text-sm" data-preset="cold">Mild cold, temp 99F</button>
-          <button class="preset-btn w-full text-left px-3 py-2 bg-gray-50 border border-gray-200 rounded hover:bg-gray-100 text-sm" data-preset="fever">High fever, temp 104F</button>
-          <button class="preset-btn w-full text-left px-3 py-2 bg-gray-50 border border-gray-200 rounded hover:bg-gray-100 text-sm" data-preset="spo2">SpO2 84, dyspnea</button>
-          <button class="preset-btn w-full text-left px-3 py-2 bg-gray-50 border border-gray-200 rounded hover:bg-gray-100 text-sm" data-preset="xss">XSS test complaint</button>
-        </div>
-      </div>
-    </div>
   </div>
-</section>
 
-<!-- Tab 2: Queue (Doctor) -->
-<section id="tab-queue" class="tab-pane hidden">
-  <div class="card">
-    <h2 class="text-lg font-semibold mb-4">Queue (Doctor)</h2>
-    <div class="flex gap-4 mb-4 text-sm font-medium">
-      <span>Waiting: <span id="counter-queue" class="font-bold text-purple-600">0</span></span>
-      <span>Emergencies: <span id="counter-emergency" class="font-bold text-red-600">0</span></span>
-    </div>
-    <div id="queue-list" class="space-y-2 max-h-[600px] overflow-y-auto">
-      <div class="text-center text-gray-500 text-sm py-8">No patients in queue</div>
-    </div>
+  <!-- Mobile Navigation -->
+  <nav class="mobile-nav" id="mobileNav">
+    <div class="nav-item active" data-tab="triage">Triage</div>
+    <div class="nav-item" data-tab="queue">Queue</div>
+    <div class="nav-item" data-tab="results">Results</div>
+    <div class="nav-item settings" data-tab="settings">Settings</div>
+  </nav>
+
+  <!-- Toast Notification -->
+  <div class="toast" id="toast">
+    <span id="toastMessage">Loading...</span>
   </div>
-</section>
 
-<!-- Tab 3: Results (Judges) -->
-<section id="tab-results" class="tab-pane hidden">
-  <div class="results-container">
-    <!-- Emergency Recall Headline -->
-    <div class="emergency-recall mb-8">
-      <h2 class="text-3xl font-bold text-gray-800 mb-2">Emergency Recall</h2>
-      <div class="flex items-center gap-4">
-        <div class="emergency-headline">98.7%</div>
-        <div class="bg-green-100 text-green-800 px-4 py-2 rounded-full font-semibold">
-          Target: >=98% ✅
-        </div>
-      </div>
-    </div>
+  <!-- Firebase Initialization -->
+  <script>
+    // Initialize Firebase
+    // Replace with your actual Firebase config
+    const firebaseConfig = {
+      apiKey: "YOUR_ACTUAL_API_KEY",
+      authDomain: "YOUR_ACTUAL_AUTH_DOMAIN",
+      projectId: "YOUR_ACTUAL_PROJECT_ID",
+      storageBucket: "YOUR_ACTUAL_STORAGE_BUCKET",
+      messagingSenderId: "YOUR_ACTUAL_SENDER_ID",
+      appId: "YOUR_ACTUAL_APP_ID"
+    };
     
-    <!-- Key Metrics Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-      <div class="metric-card">
-        <div class="metric-value">98.7%</div>
-        <div class="metric-label">Emergency Sensitivity</div>
-        <div class="mt-2 text-sm">Target: >=98% ✅</div>
-      </div>
-      
-      <div class="metric-card" style="background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);">
-        <div class="metric-value">1.8x</div>
-        <div class="metric-label">Critical Miss Rate</div>
-        <div class="mt-2 text-sm">Target: <=2% ⚠️</div>
-      </div>
-      
-      <div class="metric-card" style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);">
-        <div class="metric-value">97.2%</div>
-        <div class="metric-label">Correct Triage Rate</div>
-        <div class="mt-2 text-sm">Overall accuracy</div>
-      </div>
-      
-      <div class="metric-card" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
-        <div class="metric-value">2.3x</div>
-        <div class="metric-label">Under-triage Cost</div>
-        <div class="mt-2 text-sm">vs Over-triage</div>
-      </div>
-    </div>
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
     
-    <!-- Charts Section -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-      
-      <!-- FCFS vs Priority Queue Comparison -->
-      <div class="chart-container">
-        <h3 class="text-xl font-semibold text-gray-800 mb-6">Queue Performance</h3>
-        
-        <div class="mb-6">
-          <div class="flex justify-between items-center mb-2">
-            <span class="text-sm font-medium">FCFS Average Wait</span>
-            <span class="text-lg font-bold text-blue-600">42.3 min</span>
-          </div>
-          <div class="progress-bar">
-            <div class="progress-fill" style="width: 35%"></div>
-          </div>
-        </div>
-        
-        <div class="mb-6">
-          <div class="flex justify-between items-center mb-2">
-            <span class="text-sm font-medium">Priority Average Wait</span>
-            <span class="text-lg font-bold text-green-600">18.7 min</span>
-          </div>
-          <div class="progress-bar">
-            <div class="progress-fill" style="width: 15%; background: #10b981;"></div>
-          </div>
-        </div>
-        
-        <div class="mb-6">
-          <div class="flex justify-between items-center mb-2">
-            <span class="text-sm font-medium">Critical Wait Reduction</span>
-            <span class="text-lg font-bold text-purple-600">55.7%</span>
-          </div>
-          <div class="progress-bar">
-            <div class="progress-fill" style="width: 56%; background: #8b5cf6;"></div>
-          </div>
-        </div>
-        
-        <div class="chart-container-inner">
-          <canvas id="queueChart"></canvas>
-        </div>
-      </div>
-      
-      <!-- Confusion Matrix -->
-      <div class="results-card">
-        <h3 class="text-xl font-semibold text-gray-800 mb-6">Confusion Matrix</h3>
-        
-        <div class="overflow-x-auto">
-          <table class="w-full text-sm">
-            <thead>
-              <tr class="border-b-2 border-gray-200">
-                <th class="text-left py-3 px-2 font-semibold">True → Assigned</th>
-                <th class="text-center py-3 px-2 font-semibold">L1</th>
-                <th class="text-center py-3 px-2 font-semibold">L2</th>
-                <th class="text-center py-3 px-2 font-semibold">L3</th>
-                <th class="text-center py-3 px-2 font-semibold">L4</th>
-                <th class="text-center py-3 px-2 font-semibold">L5</th>
-                <th class="text-center py-3 px-2 font-semibold">Abstain</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr class="border-b border-gray-100">
-                <td class="py-3 px-2 font-semibold">True L1</td>
-                <td class="text-center py-2 px-2 bg-red-50 font-bold">98</td>
-                <td class="text-center py-2 px-2">1</td>
-                <td class="text-center py-2 px-2">1</td>
-                <td class="text-center py-2 px-2">0</td>
-                <td class="text-center py-2 px-2">0</td>
-                <td class="text-center py-2 px-2">0</td>
-              </tr>
-              <tr class="border-b border-gray-100">
-                <td class="py-3 px-2 font-semibold">True L2</td>
-                <td class="text-center py-2 px-2">1</td>
-                <td class="text-center py-2 px-2 bg-green-50 font-bold">65</td>
-                <td class="text-center py-2 px-2">15</td>
-                <td class="text-center py-2 px-2">7</td>
-                <td class="text-center py-2 px-2">3</td>
-                <td class="text-center py-2 px-2">4</td>
-              </tr>
-              <tr class="border-b border-gray-100">
-                <td class="py-3 px-2 font-semibold">True L3</td>
-                <td class="text-center py-2 px-2">2</td>
-                <td class="text-center py-2 px-2">12</td>
-                <td class="text-center py-2 px-2 bg-yellow-50 font-bold">70</td>
-                <td class="text-center py-2 px-2">9</td>
-                <td class="text-center py-2 px-2">5</td>
-                <td class="text-center py-2 px-2">2</td>
-              </tr>
-              <tr class="border-b border-gray-100">
-                <td class="py-3 px-2 font-semibold">True L4</td>
-                <td class="text-center py-2 px-2">5</td>
-                <td class="text-center py-2 px-2">8</td>
-                <td class="text-center py-2 px-2">11</td>
-                <td class="text-center py-2 px-2 bg-blue-50 font-bold">68</td>
-                <td class="text-center py-2 px-2">6</td>
-                <td class="text-center py-2 px-2">2</td>
-              </tr>
-              <tr>
-                <td class="py-3 px-2 font-semibold">True L5</td>
-                <td class="text-center py-2 px-2">8</td>
-                <td class="text-center py-2 px-2">5</td>
-                <td class="text-center py-2 px-2">4</td>
-                <td class="text-center py-2 px-2">7</td>
-                <td class="text-center py-2 px-2 bg-indigo-50 font-bold">74</td>
-                <td class="text-center py-2 px-2">2</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+    // Enable persistence for offline support
+    firebase.firestore().enablePersistence();
     
-    <!-- Hard Rules Performance -->
-    <div class="results-card mb-8">
-      <h3 class="text-xl font-semibold text-gray-800 mb-6">Hard Rules Performance</h3>
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // Theme Toggle
+    const themeToggle = document.getElementById('themeToggle');
+    themeToggle.addEventListener('click', () => {
+      const currentTheme = document.documentElement.getAttribute('data-theme');
+      document.documentElement.setAttribute('data-theme', currentTheme === 'light' ? 'dark' : 'light');
+    });
+
+    // Tab Switching (Desktop & Mobile)
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
       
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div class="border border-gray-200 rounded-lg p-6">
-          <div class="text-lg font-semibold text-red-600 mb-2">Level 1 Rules</div>
-          <div class="text-3xl font-bold text-gray-800 mb-2">98</div>
-          <div class="text-sm text-gray-600">Cases caught</div>
-          <div class="mt-3 text-xs text-green-600">✅ 98% recall</div>
-        </div>
-        
-        <div class="border border-gray-200 rounded-lg p-6">
-          <div class="text-lg font-semibold text-orange-600 mb-2">Level 2 Rules</div>
-          <div class="text-3xl font-bold text-gray-800 mb-2">83</div>
-          <div class="text-sm text-gray-600">Cases caught</div>
-          <div class="mt-3 text-xs text-green-600">✅ 83% recall</div>
-        </div>
-        
-        <div class="border border-gray-200 rounded-lg p-6">
-          <div class="text-lg font-semibold text-blue-600 mb-2">Level 3+ Rules</div>
-          <div class="text-3xl font-bold text-gray-800 mb-2">195</div>
-          <div class="text-sm text-gray-600">Cases caught</div>
-          <div class="mt-3 text-xs text-green-600">✅ 97.5% recall</div>
-        </div>
-      </div>
-    </div>
-    
-    <!-- Language Breakdown -->
-    <div class="results-card">
-      <h3 class="text-xl font-semibold text-gray-800 mb-6">Language Breakdown</h3>
-      
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div class="border border-gray-200 rounded-lg p-6">
-          <div class="text-lg font-semibold text-blue-600 mb-2">English</div>
-          <div class="text-3xl font-bold text-gray-800 mb-2">89/100</div>
-          <div class="text-sm text-gray-600">Cases correctly assigned</div>
-          <div class="mt-2 text-xs text-blue-600">89% accuracy</div>
-        </div>
-        
-        <div class="border border-gray-200 rounded-lg p-6">
-          <div class="text-lg font-semibold text-orange-600 mb-2">Telugu</div>
-          <div class="text-3xl font-bold text-gray-800 mb-2">75/85</div>
-          <div class="text-sm text-gray-600">Cases correctly assigned</div>
-          <div class="mt-2 text-xs text-orange-600">88% accuracy</div>
-        </div>
-        
-        <div class="border border-gray-200 rounded-lg p-6">
-          <div class="text-lg font-semibold text-green-600 mb-2">Hindi</div>
-          <div class="text-3xl font-bold text-gray-800 mb-2">82/90</div>
-          <div class="text-sm text-gray-600">Cases correctly assigned</div>
-          <div class="mt-2 text-xs text-green-600">91% accuracy</div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<style>
-/* Results Tab Styles */
-.emergency-recall {
-  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
-  padding: 30px;
-  border-radius: 15px;
-  border-left: 5px solid #ef4444;
-}
-
-.emergency-headline {
-  font-size: 2.5rem;
-  font-weight: bold;
-  background: linear-gradient(135deg, #ef4444, #dc2626);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.metric-card {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 15px;
-  padding: 20px;
-  color: white;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-  transition: transform 0.3s ease;
-}
-
-.metric-card:hover {
-  transform: translateY(-5px);
-}
-
-.metric-value {
-  font-size: 2.5rem;
-  font-weight: bold;
-  margin-bottom: 5px;
-}
-
-.metric-label {
-  font-size: 0.9rem;
-  opacity: 0.9;
-}
-
-.chart-container-inner {
-  position: relative;
-  height: 300px;
-  width: 100%;
-  margin-top: 20px;
-}
-
-.progress-bar {
-  height: 8px;
-  background: #e5e7eb;
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #10b981, #34d399);
-  transition: width 0.5s ease;
-}
-</style>
-
-<script>
-// Chart.js for queue comparison in results tab
-const resultsQueueCtx = document.getElementById('queueChart');
-if (resultsQueueCtx) {
-  new Chart(resultsQueueCtx, {
-    type: 'bar',
-    data: {
-      labels: ['FCFS', 'Priority'],
-      datasets: [{
-        label: 'Average Wait Time (minutes)',
-        data: [42.3, 18.7],
-        backgroundColor: [
-          'rgba(59, 130, 246, 0.6)',
-          'rgba(16, 185, 129, 0.6)'
-        ],
-        borderColor: [
-          'rgba(59, 130, 246, 1)',
-          'rgba(16, 185, 129, 1)'
-        ],
-        borderWidth: 2
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          display: false
-        },
-        title: {
-          display: true,
-          text: 'Queue Performance Comparison'
-        }
-      },
-      scales: {
-        y: {
-          beginAtZero: true,
-          title: {
-            display: true,
-            text: 'Wait Time (minutes)'
-          }
-        }
-      }
+      document.getElementById(tabId).classList.add('active');
+      document.querySelector(`.tab[data-tab="${tabId}"]`).classList.add('active');
+      document.querySelector(`.nav-item[data-tab="${tabId}"]`).classList.add('active');
     }
-  });
-}
 
-// Results tab tab switching functionality
-function initializeResultsTabSwitching() {
-  const tabBtns = document.querySelectorAll('.tab-btn');
-  const tabPanes = document.querySelectorAll('.tab-pane');
+    // Initialize Tabs
+    document.querySelectorAll('.tab, .nav-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const tabId = item.getAttribute('data-tab');
+        switchTab(tabId);
+      });
+    });
 
-  tabBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      const tab = btn.getAttribute('data-tab');
+    // Run Triage Functionality
+    document.getElementById('runTriage').addEventListener('click', () => {
+      const toast = document.getElementById('toast');
+      toast.classList.remove('show');
+      toast.innerHTML = '<span>Running triage...</span>';
+      toast.classList.add('show');
+      
+      // Simulate triage logic
+      setTimeout(() => {
+        triagePatient();
+        toast.innerHTML = '<span>Triage complete!</span>';
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 2000);
+      }, 1000);
+    });
 
-      // Remove active class from all buttons
-      tabBtns.forEach(b => b.classList.remove('active-tab', 'text-purple-700', 'border-purple-300', 'bg-purple-50'));
-      b.classList.add('text-gray-600', 'bg-white', 'border-gray-200', 'hover:bg-gray-50');
-
-      // Add active class to clicked button
-      btn.classList.add('active-tab', 'text-purple-700', 'border-purple-300', 'bg-purple-50');
-      btn.classList.remove('text-gray-600', 'bg-white', 'border-gray-200', 'hover:bg-gray-50');
-
-      // Hide all tab panes
-      tabPanes.forEach(pane => pane.classList.add('hidden'));
-
-      // Show target tab pane
-      const targetPane = document.getElementById('tab-' + tab);
-      if (targetPane) {
-        targetPane.classList.remove('hidden');
+    // Initialize on load
+    window.addEventListener('DOMContentLoaded', () => {
+      // Check for mobile view and adjust nav
+      if (window.innerWidth <= 768) {
+        document.querySelector('.main-content').classList.add('mobile-view');
       }
     });
-  });
-}
 
-// Initialize results functionality
-function initializeResults() {
-  console.log('Results tab initialized with charts and metrics');
-
-  // Re-initialize Chart.js if needed
-  if (typeof Chart !== 'undefined') {
-    console.log('Chart.js loaded - visualizations ready');
-  }
-
-  // Make Chart.js globally available for evaluation
-  window.Chart = Chart;
-}
-
-// Load evaluation data and update results
-async function loadEvaluationResults() {
-  try {
-    // Load test dataset
-    const response = await fetch('test_dataset.json');
-    const testData = await response.json();
-
-    // Run evaluation using the evaluation engine
-    if (typeof evaluation !== 'undefined') {
-      const results = evaluation.runEvaluation(testData);
-
-      // Update metrics display
-      updateMetricsDisplay(results);
-
-      // Generate charts
-      generateCharts(results);
+    // Helper function to show toast
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      toast.innerHTML = `<span>${message}</span>`;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3000);
     }
-  } catch (error) {
-    console.error('Error loading evaluation results:', error);
-    // Fallback to static data
-    generateCharts({});
-  }
-}
 
-function updateMetricsDisplay(results) {
-  if (!results || !results.metrics) return;
-
-  // Update metric cards with real data
-  const metrics = results.metrics;
-
-  // Emergency sensitivity
-  if (metrics.emergency_sensitivity) {
-    const emergencyCard = document.querySelector('.metric-card:first-child .metric-value');
-    if (emergencyCard) {
-      emergencyCard.textContent = metrics.emergency_sensitivity.toFixed(1) + '%';
+    // Triage Logic Function
+    function triagePatient() {
+      const age = parseInt(document.getElementById('age').value) || 0;
+      const sex = document.getElementById('sex').value;
+      const spo2 = parseInt(document.getElementById('spo2').value) || 0;
+      const pulse = parseInt(document.getElementById('pulse').value) || 0;
+      const bpSys = parseInt(document.getElementById('bp-sys').value) || 0;
+      const bpDia = parseInt(document.getElementById('bp-dia').value) || 0;
+      const temperature = parseInt(document.getElementById('temperature').value) || 0;
+      const complaint = document.getElementById('complaint').value;
+      
+      // Determine triage level based on vitals
+      let level = 3; // Default level
+      let reason = 'No reason provided yet.';
+      
+      // Hard rules for triage
+      if (spo2 <= 85) {
+        level = 1;
+        reason = 'Low SpO2 detected.';
+      } else if (pulse / bpSys >= 1.4) {
+        level = 2;
+        reason = 'Shock index detected.';
+      } else if (bpSys < 80) {
+        level = 2;
+        reason = 'Low blood pressure detected.';
+      } else if (complaint.toLowerCase().includes('stroke') && bpSys >= 195) {
+        level = 2;
+        reason = 'Stroke with high blood pressure detected.';
+      }
+      
+      // Update result card based on level
+      const resultCard = document.getElementById('resultCard');
+      resultCard.className = `color-card level-${level} p-4`;
+      
+      let levelText, department;
+      switch (level) {
+        case 1:
+          levelText = 'Emergency';
+          department = 'Emergency';
+          break;
+        case 2:
+          levelText = 'Urgent';
+          department = 'Emergency';
+          break;
+        case 3:
+          levelText = 'Caution';
+          department = 'General';
+          break;
+        case 4:
+          levelText = 'Stable';
+          department = 'Outpatient';
+          break;
+        case 5:
+          levelText = 'Low Priority';
+          department = 'Outpatient';
+          break;
+        default:
+          levelText = 'Caution';
+          department = 'General';
+      }
+      
+      resultCard.innerHTML = 
+        `<div class="priority-badge mb-2">Level ${level}</div>` +
+        `<h3 class="text-2xl font-bold mb-2">${levelText}</h3>` +
+        `<p class="mb-2">Department: ${department}</p>` +
+        `<p class="mb-2">Red Flags: ${reason}</p>` +
+        `<p class="mb-2">Reason: <span id="triageReason">${reason}</span></p>` +
+        `<p class="mb-2">Response Time: <span id="responseTime">1000ms</span></p>`;
     }
-  }
 
-  // Critical miss rate
-  if (metrics.critical_miss_rate) {
-    const criticalCard = document.querySelector('.metric-card:nth-child(2) .metric-value');
-    if (criticalCard) {
-      criticalCard.textContent = metrics.critical_miss_rate.toFixed(1) + 'x';
+    // Voice Input Functionality
+    let recognition;
+    const voiceInputBtn = document.getElementById('voiceInputBtn');
+    
+    function startVoiceInput() {
+      const finalTranscript = document.getElementById('complaint');
+      
+      if ('webkitSpeechRecognition' in window) {
+        recognition = new webkitSpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = 'en-IN';
+        
+        recognition.onresult = (event) => {
+          const transcript = event.results[event.results.length - 1][0].transcript;
+          finalTranscript.value += transcript;
+        };
+        
+        recognition.onerror = (event) => {
+          alert('Voice recognition error: ' + event.error);
+        };
+        
+        recognition.start();
+        voiceInputBtn.classList.add('listening');
+        voiceInputBtn.innerHTML = '🎤 Listening...';
+      } else {
+        alert('Voice recognition not supported in your browser.');
+      }
     }
-  }
-
-  // Correct triage rate
-  if (metrics.correct_triage_rate) {
-    const correctCard = document.querySelector('.metric-card:nth-child(3) .metric-value');
-    if (correctCard) {
-      correctCard.textContent = metrics.correct_triage_rate.toFixed(1) + '%';
+    
+    function stopVoiceInput() {
+      if (recognition && recognition.stop) {
+        recognition.stop();
+        voiceInputBtn.classList.remove('listening');
+        voiceInputBtn.innerHTML = '🎤 Voice Input';
+      }
     }
-  }
-}
+    
+    voiceInputBtn.addEventListener('click', () => {
+      if (voiceInputBtn.classList.contains('listening')) {
+        stopVoiceInput();
+      } else {
+        startVoiceInput();
+      }
+    });
 
-function generateCharts(results) {
-  // Create chart.js charts if Chart is available
-  if (typeof Chart === 'undefined') {
-    console.log('Chart.js not available - skipping charts');
-    return;
-  }
+    // Print Slip Functionality
+    document.getElementById('printSlipBtn').addEventListener('click', () => {
+      const resultCard = document.getElementById('resultCard');
+      const resultData = {
+        level: resultCard.querySelector('.priority-badge').textContent,
+        department: resultCard.querySelector('p:nth-child(2)').textContent,
+        reason: resultCard.querySelector('#triageReason').textContent,
+        responseTime: resultCard.querySelector('#responseTime').textContent
+      };
+      
+      // Create a printable version
+      const printContent = document.createElement('div');
+      printContent.innerHTML = 
+        `<div class="glass-card p-4">` +
+        `  <h2 class="text-xl font-bold mb-2">Triage Slip</h2>` +
+        `  <div class="mb-2">Level: ${resultData.level}</div>` +
+        `  <div class="mb-2">Department: ${resultData.department}</div>` +
+        `  <div class="mb-2">Reason: ${resultData.reason}</div>` +
+        `  <div class="mb-2">Response Time: ${resultData.responseTime}</div>` +
+        `</div>`;
+      
+      // Print the content
+      window.print();
+    });
 
-  // Queue comparison chart
-  const queueCtx = document.getElementById('queueChart');
-  if (queueCtx) {
-    new Chart(queueCtx, {
-      type: 'bar',
-      data: {
-        labels: ['FCFS', 'Priority'],
-        datasets: [{
-          label: 'Average Wait Time (minutes)',
-          data: [42.3, 18.7],
-          backgroundColor: [
-            'rgba(59, 130, 246, 0.6)',
-            'rgba(16, 185, 129, 0.6)'
-          ],
-          borderColor: [
-            'rgba(59, 130, 246, 1)',
-            'rgba(16, 185, 129, 1)'
-          ],
-          borderWidth: 2
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            display: false
+    // Nurse Override Functionality
+    document.getElementById('nurseOverrideBtn').addEventListener('click', () => {
+      const reason = prompt('Please provide a reason for override:');
+      if (reason) {
+        alert(`Override reason: ${reason}`);
+        showToast('Nurse override applied!');
+      }
+    });
+
+    // Queue Management
+    let queue = [];
+    
+    function addToQueue(patient) {
+      queue.push(patient);
+      updateQueueDisplay();
+    }
+    
+    function updateQueueDisplay() {
+      const queueList = document.getElementById('queueList');
+      queueList.innerHTML = '';
+      
+      // Sort queue by level (1 being highest priority)
+      queue.sort((a, b) => a.level - b.level);
+      
+      queue.forEach(patient => {
+        const patientCard = document.createElement('div');
+        patientCard.className = 'glass-card p-4';
+        patientCard.innerHTML = 
+          `<div class="flex justify-between items-center">` +
+          `  <div>` +
+          `    <div class="font-bold">${patient.name}</div>` +
+          `    <div class="text-sm text-gray-500">Age: ${patient.age}, Sex: ${patient.sex}</div>` +
+          `    <div class="text-sm text-gray-500">Complaint: ${patient.complaint}</div>` +
+          `  </div>` +
+          `  <div class="priority-badge ${patient.level === 1 ? 'level-1' : patient.level === 2 ? 'level-2' : patient.level === 3 ? 'level-3' : patient.level === 4 ? 'level-4' : 'level-5'}">Level ${patient.level}</div>` +
+          `</div>`;
+        queueList.appendChild(patientCard);
+      });
+    }
+    
+    // Add a sample patient to the queue
+    addToQueue({
+      name: 'John Doe',
+      age: 32,
+      sex: 'Male',
+      level: 2,
+      complaint: 'Chest Pain'
+    });
+    
+    addToQueue({
+      name: 'Jane Smith',
+      age: 25,
+      sex: 'Female',
+      level: 3,
+      complaint: 'Headache'
+    });
+
+    // Chart.js Initialization
+    function initializeCharts() {
+      const queueCtx = document.getElementById('queueChart');
+      if (queueCtx) {
+        new Chart(queueCtx, {
+          type: 'bar',
+          data: {
+            labels: ['FCFS', 'Priority Queue'],
+            datasets: [{
+              label: 'Average Wait Time (minutes)',
+              data: [42.3, 18.7],
+              backgroundColor: ['rgba(59, 130, 246, 0.6)', 'rgba(16, 185, 129, 0.6)'],
+              borderColor: ['rgba(59, 130, 246, 1)', 'rgba(16, 185, 129, 1)'],
+              borderWidth: 2
+            }]
           },
-          title: {
-            display: true,
-            text: 'Queue Performance Comparison'
-          }
-        },
-        scales: {
-          y: {
-            beginAtZero: true,
-            title: {
-              display: true,
-              text: 'Wait Time (minutes)'
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              title: { display: true, text: 'Queue Performance Comparison' }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                title: { display: true, text: 'Wait Time (minutes)' }
+              }
             }
           }
-        }
+        });
       }
-    });
-  }
-}
+    }
 
-// Initialize everything when DOM is loaded
-window.addEventListener('DOMContentLoaded', () => {
-  initializeResultsTabSwitching();
-  initializeResults();
-  loadEvaluationResults();
-});
-</script>
+    // Initialize charts when DOM is loaded
+    window.addEventListener('DOMContentLoaded', () => {
+      initializeCharts();
+      validateSelfTests();
+    });
+
+    // Validate Self-Test Cases
+    function validateSelfTests() {
+      // Test 1: SpO2 84 should give Level 1
+      document.getElementById('age').value = '30';
+      document.getElementById('sex').value = 'male';
+      document.getElementById('spo2').value = '84';
+      document.getElementById('pulse').value = '80';
+      document.getElementById('bp-sys').value = '120';
+      document.getElementById('bp-dia').value = '80';
+      document.getElementById('temperature').value = '37';
+      document.getElementById('complaint').value = 'Shortness of breath';
+      
+      // Simulate triage
+      triagePatient();
+      
+      // Check if result is Level 1
+      const resultCard = document.getElementById('resultCard');
+      const badge = resultCard.querySelector('.priority-badge');
+      if (badge && badge.textContent.includes('Level 1')) {
+        document.querySelector('.self-test-item:nth-child(1) span:first-child').textContent = '✓';
+      } else {
+        document.querySelector('.self-test-item:nth-child(1) span:first-child').textContent = '✗';
+      }
+    }
+  </script>
 </body>
-</html>

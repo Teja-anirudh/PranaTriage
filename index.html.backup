@@ -1,0 +1,1706 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prana Priority • The sickest patient is seen first.</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400,500,600,700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --red-emergency: #ef4444;
+      --orange-urgent: #f97316;
+      --yellow-caution: #eab308;
+      --green-stable: #22c55e;
+      --blue-low: #3b82f6;
+      --purple-ambient: #a855f7;
+      --bg-light: #f8fafc;
+      --bg-card: #ffffff;
+      --text-primary: #1e293b;
+      --text-secondary: #64748b;
+    }
+    [data-theme="dark"] {
+      --bg-light: #0f172a;
+      --bg-card: #1e293b;
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg-light);
+      color: var(--text-primary);
+      transition: background 0.3s, color 0.3s;
+    }
+    .btn-primary { @apply bg-purple-600 text-white font-medium rounded-lg px-4 py-2.5 hover:bg-purple-700 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500; }
+    .btn-secondary { @apply bg-white text-gray-800 font-medium rounded-lg px-4 py-2.5 hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 border border-gray-300; }
+    .btn-success { @apply bg-green-600 text-white font-medium rounded-lg px-4 py-2.5 hover:bg-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-green-500; }
+    .btn-outline { @apply bg-white text-gray-700 font-medium rounded-lg px-4 py-2.5 border border-gray-300 hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500; }
+    .btn-danger { @apply bg-red-600 text-white font-medium rounded-lg px-4 py-2.5 hover:bg-red-700 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500; }
+    .card { @apply bg-white rounded-xl shadow-sm p-6 border border-gray-200; }
+    [data-theme="dark"] .card { background: var(--bg-card); border-color: #374151; }
+    .priority-badge { @apply px-3 py-1 rounded-full text-xs font-bold; }
+    .level-1 { @apply bg-red-100 text-red-800 border border-red-200; }
+    .level-2 { @apply bg-orange-100 text-orange-800 border border-orange-200; }
+    .level-3 { @apply bg-yellow-100 text-yellow-800 border border-yellow-200; }
+    .level-4 { @apply bg-green-100 text-green-800 border border-green-200; }
+    .level-5 { @apply bg-blue-100 text-blue-800 border border-blue-200; }
+    .color-card { @apply min-h-64 flex items-center justify-center text-center rounded-xl border-2; }
+    .toast { @apply fixed bottom-4 right-4 px-6 py-3 rounded-lg text-white font-medium shadow-xl z-50 opacity-0 transition-opacity 300ms; }
+    .toast.show { opacity: 1; }
+    .no-alert { all: unset; }
+    .input-error { @apply border-red-500 focus:ring-red-500; }
+    .error-text { @apply text-red-500 text-sm mt-1 hidden; }
+    .error-text.visible { @apply block; }
+    .form-group { @apply mb-4; }
+    .form-label { @apply block text-sm font-medium text-gray-700 mb-1; }
+    [data-theme="dark"] .form-label { @apply text-gray-300; }
+    .form-input { @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors; }
+    [data-theme="dark"] .form-input { @apply bg-gray-800 border-gray-600 text-white focus:ring-purple-500; }
+    .form-select { @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white transition-colors; }
+    [data-theme="dark"] .form-select { @apply bg-gray-800 border-gray-600 text-white focus:ring-purple-500; }
+    .form-textarea { @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors min-h-[80px]; }
+    [data-theme="dark"] .form-textarea { @apply bg-gray-800 border-gray-600 text-white focus:ring-purple-500; }
+    .required-mark { @apply text-red-500 ml-0.5; }
+    .optional-mark { @apply text-gray-400 text-xs ml-1; }
+    .voice-btn { @apply rounded-full px-3 py-2 border border-gray-300 bg-white hover:bg-gray-50 transition-colors; }
+    [data-theme="dark"] .voice-btn { @apply bg-gray-800 text-white border-gray-600; }
+    .voice-btn.listening { @apply bg-red-500 text-white border-red-500; }
+    @media print {
+      .no-print, .tab-btn, .btn-primary, .btn-secondary, .toast, .theme-toggle, .voice-btn { display: none !important; }
+      body { background: #ffffff !important; color: #000000 !important; }
+      .card { border: 1px solid #000000 !important; box-shadow: none !important; background: #ffffff !important; }
+    }
+    @media (max-width: 639px) {
+      .btn-primary, .btn-secondary, .btn-success, .btn-outline, .btn-danger { @apply px-3 py-2.5 text-sm; }
+    }
+  </style>
+</head>
+<body class="min-h-screen p-4 sm:p-6">
+
+<!-- Header -->
+<header class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+  <div>
+    <h1 class="text-2xl font-bold tracking-tight">Prana Priority</h1>
+    <p class="text-sm text-gray-600 mt-1">The sickest patient is seen first.</p>
+  </div>
+  <div class="flex items-center gap-3">
+    <button id="theme-toggle" class="btn-outline px-3 py-2 text-sm" title="Toggle dark mode">🌓</button>
+    <button id="lang-toggle" class="btn-outline px-3 py-2 text-sm" title="Toggle English/Telugu">EN/TE</button>
+    <span id="mode-badge" class="px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-600 border border-gray-300">Standalone</span>
+  </div>
+</header>
+
+<!-- Counters -->
+<div class="mb-6 flex gap-4 no-print">
+  <div class="card px-4 py-3">
+    <div class="text-xs text-gray-500 uppercase">Waiting</div>
+    <div id="counter-waiting" class="text-xl font-bold text-purple-600">0</div>
+  </div>
+  <div class="card px-4 py-3">
+    <div class="text-xs text-gray-500 uppercase">Emergencies (Level 1)</div>
+    <div id="counter-emergencies" class="text-xl font-bold text-red-600">0</div>
+  </div>
+</div>
+
+<!-- Tabs Navigation -->
+<div class="mb-6 flex gap-1 overflow-x-auto scrollbar-hide sm:scrollbar-auto no-print">
+  <button class="tab-btn px-5 py-3 rounded-lg font-medium text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 transition-all active-tab" data-tab="triage">Triage</button>
+  <button class="tab-btn px-5 py-3 rounded-lg font-medium text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 transition-all" data-tab="queue">Queue</button>
+  <button class="tab-btn px-5 py-3 rounded-lg font-medium text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 transition-all" data-tab="results">Results</button>
+</div>
+
+<!-- Disclaimer -->
+<div class="disclaimer-banner mb-6">
+  <strong>Decision support only.</strong> Nurse can override. Not a diagnosis. Not clinically validated.
+</div>
+
+<!-- Tab Panels Container -->
+<main class="space-y-6">
+
+<!-- Tab 1: Triage (Nurse) -->
+<section id="tab-triage" class="tab-pane hidden">
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Intake Form -->
+    <div class="lg:col-span-2 space-y-6">
+      <div class="card">
+        <h2 class="text-lg font-semibold mb-4" id="h-patient-reg">Patient Registration & Triage</h2>
+        <form id="intake-form" novalidate class="space-y-5">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="form-group">
+              <label class="form-label" id="lbl-name">Patient Name <span class="required-mark">*</span></label>
+              <input type="text" id="reg-name" class="form-input" placeholder="Full name" maxlength="100" oninput="escapeHtml(this)">
+              <span class="error-text" id="err-reg-name">Name is required.</span>
+            </div>
+            <div class="form-group">
+              <label class="form-label" id="lbl-age">Age <span class="required-mark">*</span></label>
+              <input type="number" id="reg-age" class="form-input" min="0" max="120" placeholder="Age" oninput="escapeHtml(this)">
+              <span class="error-text" id="err-reg-age">Valid age required (0-120).</span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" id="lbl-gender">Gender <span class="required-mark">*</span></label>
+            <select id="reg-gender" class="form-select" oninput="escapeHtml(this)">
+              <option value="">Select</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
+            </select>
+            <span class="error-text" id="err-reg-gender">Gender is required.</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label" id="lbl-complaint">Chief Complaint <span class="required-mark">*</span></label>
+            <textarea id="reg-complaint" class="form-textarea" placeholder="Describe symptoms (English, Telugu, Hindi, Hinglish)..." oninput="escapeHtml(this)"></textarea>
+            <span class="error-text" id="err-reg-complaint">Chief complaint is required.</span>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="form-group">
+              <label class="form-label" id="lbl-temp">Temperature (°C) <span class="optional-mark">(optional)</span></label>
+              <input type="number" id="reg-temp" class="form-input" step="0.1" min="30" max="45" placeholder="e.g. 37.0 or 99F" oninput="escapeHtml(this)">
+              <span class="error-text" id="err-reg-temp">Invalid temperature.</span>
+            </div>
+            <div class="form-group">
+              <label class="form-label" id="lbl-spo2">SpO2 (%) <span class="optional-mark">(optional)</span></label>
+              <input type="number" id="reg-spo2" class="form-input" min="50" max="100" placeholder="e.g. 97" oninput="escapeHtml(this)">
+              <span class="error-text" id="err-reg-spo2">Invalid SpO2 (50-100).</span>
+            </div>
+            <div class="form-group">
+              <label class="form-label" id="lbl-pulse">Pulse (BPM) <span class="optional-mark">(optional)</span></label>
+              <input type="number" id="reg-pulse" class="form-input" min="20" max="250" placeholder="e.g. 82" oninput="escapeHtml(this)">
+              <span class="error-text" id="err-reg-pulse">Invalid pulse (20-250).</span>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="form-group">
+              <label class="form-label" id="lbl-sbp">SBP (mmHg) <span class="optional-mark">(optional)</span></label>
+              <input type="number" id="reg-sbp" class="form-input" min="50" max="300" placeholder="e.g. 120" oninput="escapeHtml(this)">
+              <span class="error-text" id="err-reg-sbp">Invalid SBP.</span>
+            </div>
+            <div class="form-group">
+              <label class="form-label" id="lbl-dbpc">DBP (mmHg) <span class="optional-mark">(optional)</span></label>
+              <input type="number" id="reg-dbpc" class="form-input" min="30" max="200" placeholder="e.g. 80" oninput="escapeHtml(this)">
+              <span class="error-text" id="err-reg-dbpc">Invalid DBP.</span>
+            </div>
+          </div>
+          <div class="ai-disclaimer">
+            <strong>🤖 Language Assistance:</strong>
+            <button type="button" id="voice-input-btn" class="voice-btn ml-2" title="Voice input">🎤 Speak</button>
+            <button type="button" id="ai-normalize-btn" class="btn-outline px-3 py-1.5 text-sm ml-2">Normalize Text</button>
+            <button type="button" id="ai-clarify-btn" class="btn-outline px-3 py-1.5 text-sm ml-2">Clarify Questions</button>
+          </div>
+          <div id="ai-response-area" class="ai-response hidden">
+            <div id="ai-response-content" class="text-sm text-gray-700"></div>
+          </div>
+          <div class="pt-4 border-t border-gray-200 flex justify-end gap-2">
+            <button type="button" id="triage-btn" class="btn-primary px-8 py-3">Run triage</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Triage Result -->
+      <div id="triage-result" class="hidden card">
+        <h2 class="text-lg font-semibold mb-4">Triage Assessment Result</h2>
+        <div id="triage-decision-display" class="mb-4"></div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div class="bg-gray-50 p-3 rounded border border-gray-100">
+            <div class="text-xs text-gray-500 uppercase mb-1">Level</div>
+            <div id="disp-level" class="text-xl font-bold"></div>
+          </div>
+          <div class="bg-gray-50 p-3 rounded border border-gray-100">
+            <div class="text-xs text-gray-500 uppercase mb-1">Department</div>
+            <div id="disp-dept" class="text-base font-medium"></div>
+          </div>
+          <div class="bg-gray-50 p-3 rounded border border-gray-100">
+            <div class="text-xs text-gray-500 uppercase mb-1">Room</div>
+            <div id="disp-room" class="text-base font-medium"></div>
+          </div>
+          <div class="bg-gray-50 p-3 rounded border border-gray-100">
+            <div class="text-xs text-gray-500 uppercase mb-1">Confidence</div>
+            <div id="disp-confidence" class="text-base font-medium"></div>
+          </div>
+        </div>
+        <div id="disp-flags" class="mb-4"></div>
+        <div id="disp-reason" class="mb-4 p-3 bg-blue-50 border border-blue-100 rounded text-sm text-blue-800"></div>
+        <div id="disp-missing" class="mb-4 text-sm text-gray-600"></div>
+        <div class="pt-4 border-t border-gray-200 flex gap-2">
+          <button type="button" id="add-to-queue-btn" class="btn-success px-6 py-2.5">Add to Queue</button>
+          <button type="button" id="abstain-nurse-btn" class="btn-outline px-6 py-2.5">Send to Nurse STAT Desk</button>
+          <button type="button" id="override-btn" class="btn-danger px-6 py-2.5">Override</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Presets / Quick Fill -->
+    <div class="lg:col-span-1 space-y-4">
+      <div class="card">
+        <h3 class="text-sm font-semibold mb-3">Quick Presets</h3>
+        <div class="space-y-2">
+          <button class="preset-btn w-full text-left px-3 py-2 bg-gray-50 border border-gray-200 rounded hover:bg-gray-100 text-sm" data-preset="stemi">STEMI: Chest pain, age 58, sweating</button>
+          <button class="preset-btn w-full text-left px-3 py-2 bg-gray-50 border border-gray-200 rounded hover:bg-gray-100 text-sm" data-preset="stroke">Stroke (Telugu hemiplegia), SBP 195</button>
+          <button class="preset-btn w-full text-left px-3 py-2 bg-gray-50 border border-gray-200 rounded hover:bg-gray-100 text-sm" data-preset="vague">Vague complaint, no vitals</button>
+          <button class="preset-btn w-full text-left px-3 py-2 bg-gray-50 border border-gray-200 rounded hover:bg-gray-100 text-sm" data-preset="ankle">Ankle pain, age 32</button>
+          <button class="preset-btn w-full text-left px-3 py-2 bg-gray-50 border border-gray-200 rounded hover:bg-gray-100 text-sm" data-preset="cold">Mild cold, temp 99F</button>
+          <button class="preset-btn w-full text-left px-3 py-2 bg-gray-50 border border-gray-200 rounded hover:bg-gray-100 text-sm" data-preset="fever">High fever, temp 104F</button>
+          <button class="preset-btn w-full text-left px-3 py-2 bg-gray-50 border border-gray-200 rounded hover:bg-gray-100 text-sm" data-preset="spo2">SpO2 84, dyspnea</button>
+          <button class="preset-btn w-full text-left px-3 py-2 bg-gray-50 border border-gray-200 rounded hover:bg-gray-100 text-sm" data-preset="xss">XSS test complaint</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Tab 2: Queue (Doctor) -->
+<section id="tab-queue" class="tab-pane hidden">
+  <div class="card">
+    <h2 class="text-lg font-semibold mb-4">Queue (Doctor)</h2>
+    <div class="flex gap-4 mb-4 text-sm font-medium">
+      <span>Waiting: <span id="counter-queue" class="font-bold text-purple-600">0</span></span>
+      <span>Emergencies: <span id="counter-emergency" class="font-bold text-red-600">0</span></span>
+    </div>
+    <div id="queue-list" class="space-y-2 max-h-[600px] overflow-y-auto">
+      <div class="text-center text-gray-500 text-sm py-8">No patients in queue</div>
+    </div>
+  </div>
+</section>
+
+<!-- Tab 3: Results (Judges) -->
+<section id="tab-results" class="tab-pane hidden">
+  <div class="card">
+    <h2 class="text-lg font-semibold mb-4">Results (Judges)</h2>
+    <div id="results-content">
+      <div class="text-center text-gray-500 py-8">Run evaluation to see results</div>
+    </div>
+  </div>
+</section>
+</main>
+
+<!-- Self-test Panel (always visible at bottom) -->
+<section id="tab-self-test" class="self-test-panel mb-6">
+  <h3 class="text-sm font-semibold mb-3 flex items-center gap-1">Self-Test Panel
+    <span id="self-test-badge" class="ml-2 px-2 py-0.5 rounded text-xs font-bold bg-gray-200 text-gray-700">Pending</span>
+  </h3>
+  <div id="self-test-list" class="space-y-1">
+    <!-- Test rows rendered here -->
+  </div>
+</section>
+
+<!-- Toast Container -->
+<div id="toast-container" class="fixed bottom-4 right-4 space-y-2 z-50"></div>
+
+<script>
+// ============================================================================
+// PRANA PRIORITY — CORE LOGIC
+// ============================================================================
+
+// ---- i18n dictionary ----
+const I18N = {
+  en: {
+    'app.title': 'Prana Priority',
+    'app.subtitle': 'The sickest patient is seen first.',
+    'tab.triage': 'Triage',
+    'tab.queue': 'Queue',
+    'tab.results': 'Results',
+    'form.name': 'Patient Name',
+    'form.age': 'Age',
+    'form.gender': 'Gender',
+    'form.complaint': 'Chief Complaint',
+    'form.temp': 'Temperature (°C)',
+    'form.spo2': 'SpO2 (%)',
+    'form.pulse': 'Pulse (BPM)',
+    'form.sbp': 'SBP (mmHg)',
+    'form.dbp': 'DBP (mmHg)',
+    'btn.triage': 'Run triage',
+    'btn.add-queue': 'Add to Queue',
+    'btn.abstain': 'Send to Nurse STAT Desk',
+    'btn.override': 'Override',
+    'level.1': 'Level 1 — Emergency',
+    'level.2': 'Level 2 — Urgent',
+    'level.3': 'Level 3 — Semi-urgent',
+    'level.4': 'Level 4 — Non-urgent',
+    'level.5': 'Level 5 — Stable',
+    'dept.emergency': 'Emergency / Casualty',
+    'dept.cardiology': 'Cardiology',
+    'dept.neurology': 'Neurology',
+    'dept.general': 'General Medicine',
+    'dept.obs': 'OBG / Emergency',
+    'dept.pediatrics': 'Pediatrics',
+    'dept.respiratory': 'Respiratory',
+    'room.1': 'Room 1',
+    'room.2': 'Room 2',
+    'room.3': 'Room 3',
+    'room.4': 'Room 4',
+    'room.5': 'Room 5',
+    'room.nurse': 'Nurse STAT Desk',
+    'pa.announce': 'Patient {name}, token {token}, please proceed to {room}',
+    'pa.announce.te': '({nameTe}, token {token}, {roomTe} ki velli undi)',
+    'print.slip': 'Triage Slip',
+    'print.token': 'Token',
+    'print.level': 'Priority Level',
+    'print.room': 'Room',
+    'print.time': 'Time',
+    'print.date': 'Date',
+  },
+  te: {
+    'app.title': 'ప్రణా ప్రియారిటీ',
+    'app.subtitle': 'సాధించిన రోగి ముందుగా చూడబడతారు.',
+    'tab.triage': 'ట్రయాగ్',
+    'tab.queue': 'క్యూ',
+    'tab.results': 'ఫలితాలు',
+    'form.name': 'రోగి పేరు',
+    'form.age': 'వయస్సు',
+    'form.gender': 'లింగం',
+    'form.complaint': 'ప్రధాన సమస్య',
+    'form.temp': 'ఉష్ణోగ్రత (°C)',
+    'form.spo2': 'SpO2 (%)',
+    'form.pulse': 'నాడి (BPM)',
+    'form.sbp': 'SBP (mmHg)',
+    'form.dbp': 'DBP (mmHg)',
+    'btn.triage': 'ట్రయాగ్ నడపండి',
+    'btn.add-queue': 'క్యూలో జోడించండి',
+    'btn.abstain': 'నర్స్ స్టాట్ డెస్క్‌కు పంపండి',
+    'btn.override': 'ఓవర్డైడ్',
+    'level.1': 'లెవెల్ 1 — అత్యవసరం',
+    'level.2': 'లెవెల్ 2 — తువ్వుతుంది',
+    'level.3': 'లెవెల్ 3 — అర్ధ సంతృప్తి',
+    'level.4': 'లెవెల్ 4 — అసంతృప్తి',
+    'level.5': 'లెవెల్ 5 — స్థిరమైనది',
+    'dept.emergency': 'అత్యవసరం / క్యాజ్యూలటీ',
+    'dept.cardiology': 'ಕಾರ್ಡಿಯాలజీ',
+    'dept.neurology': 'ನ್ಯೂರಾಲಜಿ',
+    'dept.general': 'ಸಾಮಾನ್ಯ ವೈದ್ಯಕೀಯ',
+    'dept.obs': 'ಒಬ డಿ. / డి. I.',
+    'dept.pediatrics': 'ಪೀಡಿಯಾಟ್ರಿಕ್ಸ್',
+    'dept.respiratory': 'ಶ್ವಾಸ',
+    'room.1': 'గది 1',
+    'room.2': 'గది 2',
+    'room.3': 'గది 3',
+    'room.4': 'గది 4',
+    'room.5': 'గది 5',
+    'room.nurse': 'నర్స్ స్టాట్ డెస్క్',
+    'pa.announce': 'రోగి {name}, టోకెన్ {token}, దయచేసి {room} కి రండు',
+    'pa.announce.te': '{nameTe}, టోకెన్ {token}, {roomTe} కి వెళ్లండి',
+    'print.slip': 'ట్రయాగ్ స్లిప్',
+    'print.token': 'టోకెన్',
+    'print.level': 'ప్రోరిటీ లెవెల్',
+    'print.room': 'గది',
+    'print.time': 'సమయం',
+    'print.date': 'తేదీ',
+  }
+};
+
+let CURRENT_LANG = 'en';
+
+function t(key) {
+  return I18N[CURRENT_LANG][key] || I18N['en'][key] || key;
+}
+
+// ---- Cost Matrix (asymmetric safety) ----
+// rows: true level 1-5, cols: assigned level 1-5
+// cost[trueLevel-1][assignedLevel-1]
+const COST_MATRIX = [
+  [0,   1,   5,  20,  50],   // True L1 Emergency
+  [1,   0,   1,   5,  20],   // True L2 Urgent
+  [5,   1,   0,   1,   5],   // True L3 Semi-urgent
+  [20,  5,   1,   0,   1],   // True L4 Non-urgent
+  [50, 20,   5,   1,   0]    // True L5 Stable
+];
+const COST_ABSTAIN = 1.5;  // cost of abstaining regardless of true level
+
+// ---- Vitals Sanitization ----
+function sanitizeVitals(input) {
+  const result = {
+    tempC: null,
+    tempSource: null,
+    spo2: null,
+    pulse: null,
+    sbp: null,
+    dbp: null,
+    missing: [],
+    suspect: [],
+    warnings: []
+  };
+
+  // Temperature
+  if (input.temp !== undefined && input.temp !== '' && input.temp != null) {
+    const t = parseFloat(String(input.temp).replace(/[°cf]/gi, '').trim());
+    if (!isNaN(t)) {
+      if (t > 80) {
+        result.tempC = ((t - 32) * 5 / 9).toFixed(1);
+        result.tempSource = 'fahrenheit';
+      } else {
+        result.tempC = t.toFixed(1);
+        result.tempSource = 'celsius';
+      }
+    } else {
+      result.missing.push('temperature');
+    }
+  } else {
+    result.missing.push('temperature');
+  }
+
+  // SpO2
+  if (input.spo2 !== undefined && input.spo2 !== '' && input.spo2 != null) {
+    const s = parseFloat(input.spo2);
+    if (!isNaN(s)) {
+      if (s < 50 || s > 100) {
+        result.suspect.push('spo2');
+        result.warnings.push('SpO2 ' + s + '% is implausible (<50 or >100). Re-measure.');
+      } else {
+        result.spo2 = s;
+      }
+    } else {
+      result.missing.push('spo2');
+    }
+  } else {
+    result.missing.push('spo2');
+  }
+
+  // Pulse
+  if (input.pulse !== undefined && input.pulse !== '' && input.pulse != null) {
+    const p = parseFloat(input.pulse);
+    if (!isNaN(p)) {
+      if (p < 20 || p > 250) {
+        result.suspect.push('pulse');
+        result.warnings.push('Pulse ' + p + ' BPM is implausible (<20 or >250). Re-measure.');
+      } else {
+        result.pulse = p;
+      }
+    } else {
+      result.missing.push('pulse');
+    }
+  } else {
+    result.missing.push('pulse');
+  }
+
+  // SBP
+  if (input.sbp !== undefined && input.sbp !== '' && input.sbp != null) {
+    const s = parseFloat(input.sbp);
+    if (!isNaN(s)) {
+      if (s === 0) {
+        result.missing.push('sbp');
+      } else if (s < 50 || s > 300) {
+        result.suspect.push('sbp');
+        result.warnings.push('SBP ' + s + ' mmHg is implausible. Re-measure.');
+      } else {
+        result.sbp = s;
+      }
+    } else {
+      result.missing.push('sbp');
+    }
+  } else {
+    result.missing.push('sbp');
+  }
+
+  // DBP
+  if (input.dbp !== undefined && input.dbp !== '' && input.dbp != null) {
+    const d = parseFloat(input.dbp);
+    if (!isNaN(d)) {
+      if (d === 0) {
+        result.missing.push('dbp');
+      } else if (d < 30 || d > 200) {
+        result.suspect.push('dbp');
+        result.warnings.push('DBP ' + d + ' mmHg is implausible. Re-measure.');
+      } else {
+        result.dbp = d;
+      }
+    } else {
+      result.missing.push('dbp');
+    }
+  } else {
+    result.missing.push('dbp');
+  }
+
+  return result;
+}
+
+// ---- Shock Index ----
+function shockIndex(pulse, sbp) {
+  if (pulse == null || sbp == null || sbp === 0) return null;
+  return (pulse / sbp).toFixed(2);
+}
+
+// ---- Multilingual Symptom Lexicon ----
+const SYMPTOM_LEXICON = {
+  chest_pain: {
+    terms: ['chest pain', 'seene mein dard', 'chhati dard', 'gundelo noppi', 'గుండె నొప్పి', 'గుండే నొప్పి'],
+    context: ['chest', 'heart', 'cardiac', 'left arm', 'గుండె', 'seene', 'chhati'],
+    level: 2
+  },
+  breathlessness: {
+    terms: ['breathlessness', 'dyspnea', 'shortness of breath', 'saans phoolna', 'saans nahi aa rahi', 'saans nahi', 'ಆಯಾಸం', 'ఆయాసం', 'aayasam'],
+    level: 2
+  },
+  stroke: {
+    terms: ['stroke', 'hemiplegia', 'one-sided weakness', 'facial droop', 'slurred speech', 'లక్వా', 'పక్షవాతం', 'ఒక వైపు చేయి', 'ఒక వైపు కాలు', 'మాట ముద్దగా', 'లకవా'],
+    level: 2
+  },
+  snakebite: {
+    terms: ['snakebite', 'snake bite', 'సర్ప దంచు', 'సార్పు కాటు'],
+    level: 1
+  },
+  poisoning: {
+    terms: ['poisoning', 'poison', 'విషం'],
+    level: 1
+  },
+  severe_bleeding: {
+    terms: ['severe bleeding', 'heavy bleeding'],
+    level: 1
+  },
+  seizure: {
+    terms: ['seizure', 'convulsion', 'fits'],
+    level: 1
+  },
+  severe_abdominal_pain: {
+    terms: ['severe abdominal pain', 'stomach pain severe'],
+    level: 2
+  },
+  pregnancy_bleeding: {
+    terms: ['pregnancy bleeding', 'vaginal bleeding'],
+    level: 1
+  },
+  high_fever_stiff_neck: {
+    terms: ['high fever with stiff neck', 'fever stiff neck'],
+    level: 2
+  },
+  diabetic_emergency: {
+    terms: ['diabetic emergency', 'hypoglycaemia', 'low blood sugar'],
+    level: 2
+  },
+  unconscious: {
+    terms: ['unconscious', 'unresponsive', 'collapsed', 'not breathing'],
+    level: 1
+  }
+};
+
+function wholeWordMatch(text, term) {
+  const t = text.toLowerCase().trim();
+  const termLower = term.toLowerCase().trim();
+  const escaped = termLower.replace(/[.*+?^${}()|[\]\]/g, '\\$&');
+  const regex = new RegExp('(^|\\s)' + escaped + '(\\s|$)', 'i');
+  return regex.test(t);
+}
+
+function detectSymptoms(complaint) {
+  const detected = [];
+  const c = complaint.toLowerCase();
+  for (const [key, def] of Object.entries(SYMPTOM_LEXICON)) {
+    for (const term of def.terms) {
+      if (wholeWordMatch(complaint, term)) {
+        detected.push({ key: key, term: term, level: def.level });
+        break;
+      }
+    }
+  }
+  return detected;
+}
+
+// ---- Pure Triage Function ----
+function triage(input) {
+  const result = {
+    level: null,
+    dept: null,
+    room: null,
+    flags: [],
+    decision: null,
+    confidence: null,
+    abstain: false,
+    reason: '',
+    missingVitals: [],
+    suspectVitals: []
+  };
+
+  // 1. Sanitize vitals
+  const vitals = sanitizeVitals(input);
+  result.missingVitals = vitals.missing;
+  result.suspectVitals = vitals.suspect;
+  result.flags = vitals.warnings.slice();
+
+  const age = input.age != null ? parseFloat(input.age) : null;
+  const isChild = age != null && age < 12;
+  const complaint = String(input.complaint || '').trim();
+  const complaintLower = complaint.toLowerCase();
+
+  // 2. Hard overrides (instant Level 1)
+  let hardOverride = false;
+  let overrideReason = '';
+
+  if (vitals.spo2 != null && vitals.spo2 <= 85) {
+    hardOverride = true;
+    overrideReason = 'SpO2 ' + vitals.spo2 + '% ≤ 85%';
+  }
+  if (!hardOverride && vitals.pulse != null && vitals.sbp != null && vitals.sbp > 0 && !isChild) {
+    const si = shockIndex(vitals.pulse, vitals.sbp);
+    if (si != null && parseFloat(si) >= 1.4) {
+      hardOverride = true;
+      overrideReason = 'Shock Index ' + si + ' ≥ 1.4';
+    }
+  }
+  if (!hardOverride) {
+    for (const kw of ['unconscious', 'not breathing', 'collapsed', 'seizure']) {
+      if (complaintLower.includes(kw)) {
+        hardOverride = true;
+        overrideReason = 'Patient reports: ' + kw;
+        break;
+      }
+    }
+  }
+  if (!hardOverride && vitals.sbp != null && vitals.sbp < 80 && !isChild) {
+    hardOverride = true;
+    overrideReason = 'SBP ' + vitals.sbp + ' < 80 mmHg';
+  }
+
+  if (hardOverride) {
+    result.level = 1;
+    result.dept = 'Emergency / Casualty';
+    result.room = 'Room 1';
+    result.decision = 'LEVEL 1 — Emergency';
+    result.confidence = 'High';
+    result.abstain = false;
+    result.reason = 'HARD OVERRIDE: ' + overrideReason + '. Immediate emergency care required.';
+    result.flags.push(overrideReason);
+    return result;
+  }
+
+  // 3. Multilingual symptom detection
+  const symptoms = detectSymptoms(complaint);
+
+  // Chest pain: requires chest/heart/left-arm context OR (age>=40 AND sweating)
+  let chestPainConfirmed = false;
+  for (const s of symptoms) {
+    if (s.key === 'chest_pain') {
+      const hasContext = SYMPTOM_LEXICON.chest_pain.context.some(c => complaintLower.includes(c.toLowerCase()));
+      const ageSweat = age != null && age >= 40 && complaintLower.includes('sweat');
+      if (hasContext || ageSweat) {
+        chestPainConfirmed = true;
+        result.flags.push('Chest pain with cardiac context');
+      } else {
+        result.flags.push('Chest pain mentioned without cardiac context');
+      }
+    }
+  }
+
+  // Stroke pattern
+  let strokeDetected = false;
+  for (const s of symptoms) {
+    if (s.key === 'stroke') {
+      strokeDetected = true;
+      result.flags.push('Stroke symptoms detected');
+    }
+  }
+
+  // Life-threatening (Level 1 from symptoms)
+  let lifeThreatening = false;
+  for (const s of symptoms) {
+    if (s.level === 1 && s.key !== 'chest_pain') {
+      lifeThreatening = true;
+      break;
+    }
+  }
+
+  if (lifeThreatening) {
+    result.level = 1;
+    result.dept = 'Emergency / Casualty';
+    result.room = 'Room 1';
+    result.decision = 'LEVEL 1 — Emergency';
+    result.confidence = 'High';
+    result.abstain = false;
+    result.reason = 'Life-threatening symptom detected via multilingual lexicon.';
+    return result;
+  }
+
+  // 4. Level 2 rules
+  let level2 = false;
+  let level2Reason = '';
+
+  if (chestPainConfirmed) {
+    level2 = true;
+    level2Reason = 'ACS pattern: chest pain with cardiac context';
+    result.dept = 'Cardiology';
+    result.room = 'Room 2';
+  }
+  else if (strokeDetected) {
+    level2 = true;
+    level2Reason = 'Stroke pattern detected';
+    result.dept = 'Neurology';
+    result.room = 'Room 2';
+  }
+  else if (vitals.spo2 != null && vitals.spo2 <= 90) {
+    level2 = true;
+    level2Reason = 'Respiratory distress: SpO2 ' + vitals.spo2 + '% ≤ 90%';
+    result.dept = 'Respiratory';
+    result.room = 'Room 2';
+  }
+  else if (vitals.sbp != null && vitals.sbp >= 180 && strokeDetected) {
+    level2 = true;
+    level2Reason = 'SBP ' + vitals.sbp + ' ≥ 180 with neuro symptoms';
+    result.dept = 'Neurology';
+    result.room = 'Room 2';
+  }
+  else {
+    for (const s of symptoms) {
+      if (s.key === 'diabetic_emergency') {
+        level2 = true;
+        level2Reason = 'Diabetic emergency / hypoglycaemia';
+        result.dept = 'General Medicine';
+        result.room = 'Room 2';
+        break;
+      }
+    }
+  }
+
+  if (level2) {
+    result.level = 2;
+    result.decision = 'LEVEL 2 — Urgent';
+    result.confidence = 'Medium-High';
+    result.abstain = false;
+    result.reason = level2Reason;
+    return result;
+  }
+
+  // 5. Level 3 vs 4
+  let level = 4;
+  let dept = 'General Medicine';
+  let room = 'Room 4';
+  let reason = 'Mild presentation — routine care';
+  let confidence = 'Medium';
+
+  const hasFever = vitals.tempC != null && parseFloat(vitals.tempC) >= 38.0;
+  const highFever = vitals.tempC != null && parseFloat(vitals.tempC) >= 39.5;
+  const hasVomiting = complaintLower.includes('vomit');
+  const hasDehydration = complaintLower.includes('dehydration');
+  const extremeAge = age != null && (age < 5 || age > 65);
+  const abnormalVitals = vitals.suspect.length > 0 || (vitals.spo2 != null && vitals.spo2 <= 94);
+
+  if (hasFever) {
+    if (highFever || hasVomiting || hasDehydration || extremeAge || abnormalVitals) {
+      level = 3;
+      dept = 'General Medicine';
+      room = 'Room 3';
+      reason = 'Fever ' + vitals.tempC + '°C with escalation factors';
+      confidence = 'Medium';
+    } else {
+      level = 4;
+      reason = 'Mild fever ' + vitals.tempC + '°C — routine care';
+      confidence = 'Medium';
+    }
+  } else {
+    const mildKeywords = ['cold', 'cough', 'rash', 'headache mild', 'sore throat'];
+    const isMild = mildKeywords.some(k => complaintLower.includes(k));
+    if (isMild) {
+      level = 4;
+      reason = 'Mild symptoms — routine OPD';
+      confidence = 'Medium';
+    } else {
+      level = 3;
+      reason = 'Symptoms present — semi-urgent assessment';
+      confidence = 'Low-Medium';
+    }
+  }
+
+  result.level = level;
+  result.dept = dept;
+  result.room = room;
+  result.decision = 'LEVEL ' + level + ' — ' + (level === 1 ? 'Emergency' : level === 2 ? 'Urgent' : level === 3 ? 'Semi-urgent' : level === 4 ? 'Non-urgent' : 'Stable');
+  result.confidence = confidence;
+  result.abstain = false;
+  result.reason = reason;
+  return result;
+}
+
+// ---- Asymmetric Cost Decision Wrapper ----
+function triageWithCost(input) {
+  const base = triage(input);
+  const complaint = String(input.complaint || '').trim();
+  const criticalMissing = base.missingVitals.includes('spo2') || base.missingVitals.includes('sbp') || base.missingVitals.includes('pulse');
+  const vagueComplaint = complaint.length < 10 || !/[a-zA-Z0-9]/.test(complaint);
+
+  if (base.level === 4 && criticalMissing && vagueComplaint) {
+    base.abstain = true;
+    base.level = null;
+    base.dept = 'Triage Nurse STAT Desk';
+    base.room = 'Nurse Station';
+    base.decision = 'ABSTAIN — Nurse Review';
+    base.confidence = 'Low';
+    base.reason = 'Critical vitals missing and complaint is vague. Abstaining to nurse for manual assessment.';
+    base.flags.push('ABSTAIN: missing vitals + vague complaint');
+  }
+
+  return base;
+}
+
+window.triage = triage;
+window.triageWithCost = triageWithCost;
+window.sanitizeVitals = sanitizeVitals;
+window.detectSymptoms = detectSymptoms;
+window.COST_MATRIX = COST_MATRIX;
+window.COST_ABSTAIN = COST_ABSTAIN;
+
+console.log('Prana Priority core loaded');
+
+// ============================================================================
+// QUEUE ENGINE
+// ============================================================================
+
+const QUEUE_STATE = {
+  waiting: [],
+  consulting: null,
+  completed: [],
+  nextToken: 1,
+  doctors: 2,
+  lastAgingCheck: Date.now()
+};
+
+const LEVEL_ROOM_MAP = {
+  1: 'Room 1',
+  2: 'Room 2',
+  3: 'Room 3',
+  4: 'Room 4',
+  5: 'Room 5'
+};
+
+function computeWaitMinutes(patient) {
+  const now = Date.now();
+  const arrival = patient.arrivalTime || now;
+  return Math.floor((now - arrival) / 60000);
+}
+
+function sortQueue(queue) {
+  const now = Date.now();
+  const AGING_THRESHOLD = 30 * 60000;
+  return [...queue].sort((a, b) => {
+    const levelA = a.level || 99;
+    const levelB = b.level || 99;
+    if (levelA !== levelB) return levelA - levelB;
+    const waitA = now - (a.arrivalTime || now);
+    const waitB = now - (b.arrivalTime || now);
+    const agedA = (levelA === 3 || levelA === 4) && waitA > AGING_THRESHOLD;
+    const agedB = (levelB === 3 || levelB === 4) && waitB > AGING_THRESHOLD;
+    if (agedA && !agedB) return -1;
+    if (!agedA && agedB) return 1;
+    return (a.arrivalTime || 0) - (b.arrivalTime || 0);
+  });
+}
+
+function addToQueue(patientData, triageResult) {
+  const patient = {
+    id: 'P' + Date.now(),
+    token: QUEUE_STATE.nextToken++,
+    name: patientData.name || '',
+    age: patientData.age,
+    gender: patientData.gender,
+    complaint: patientData.complaint || '',
+    level: triageResult.level,
+    dept: triageResult.dept,
+    room: triageResult.room || LEVEL_ROOM_MAP[triageResult.level] || 'Room 4',
+    status: 'waiting',
+    arrivalTime: Date.now(),
+    calledTime: null,
+    completedTime: null,
+    flags: triageResult.flags || [],
+    reason: triageResult.reason || ''
+  };
+  QUEUE_STATE.waiting.push(patient);
+  QUEUE_STATE.waiting = sortQueue(QUEUE_STATE.waiting);
+  saveQueue();
+  renderQueue();
+  return patient;
+}
+
+function callNextPatient() {
+  if (QUEUE_STATE.consulting) {
+    showToast('A patient is already in consultation', 'orange');
+    return null;
+  }
+  if (QUEUE_STATE.waiting.length === 0) {
+    showToast('No patients in queue', 'gray');
+    return null;
+  }
+  const patient = QUEUE_STATE.waiting.shift();
+  patient.status = 'consulting';
+  patient.calledTime = Date.now();
+  QUEUE_STATE.consulting = patient;
+  saveQueue();
+  renderQueue();
+  announcePatient(patient);
+  return patient;
+}
+
+function completeConsultation() {
+  if (!QUEUE_STATE.consulting) return null;
+  const patient = QUEUE_STATE.consulting;
+  patient.status = 'completed';
+  patient.completedTime = Date.now();
+  QUEUE_STATE.completed.push(patient);
+  QUEUE_STATE.consulting = null;
+  saveQueue();
+  renderQueue();
+  return patient;
+}
+
+function saveQueue() {
+  try {
+    const data = {
+      waiting: QUEUE_STATE.waiting,
+      consulting: QUEUE_STATE.consulting,
+      completed: QUEUE_STATE.completed,
+      nextToken: QUEUE_STATE.nextToken
+    };
+    localStorage.setItem('pranapriority_queue', JSON.stringify(data));
+  } catch (e) {
+    console.warn('localStorage save failed:', e);
+  }
+}
+
+function loadQueue() {
+  try {
+    const raw = localStorage.getItem('pranapriority_queue');
+    if (raw) {
+      const data = JSON.parse(raw);
+      QUEUE_STATE.waiting = data.waiting || [];
+      QUEUE_STATE.consulting = data.consulting || null;
+      QUEUE_STATE.completed = data.completed || [];
+      QUEUE_STATE.nextToken = data.nextToken || 1;
+    }
+  } catch (e) {
+    console.warn('localStorage load failed:', e);
+  }
+}
+
+function renderQueue() {
+  const list = document.getElementById('queue-list');
+  const counterQueue = document.getElementById('counter-queue');
+  const counterEmergency = document.getElementById('counter-emergency');
+
+  if (!list) return;
+
+  const emergencyCount = QUEUE_STATE.waiting.filter(p => p.level === 1).length;
+  if (counterQueue) counterQueue.textContent = QUEUE_STATE.waiting.length;
+  if (counterEmergency) counterEmergency.textContent = emergencyCount;
+
+  if (!QUEUE_STATE.waiting.length) {
+    list.innerHTML = '<div class="text-center text-gray-500 text-sm py-8">No patients in queue</div>';
+    return;
+  }
+
+  list.innerHTML = QUEUE_STATE.waiting.map(patient => {
+    const waitTime = computeWaitMinutes(patient);
+    const waitText = waitTime < 60 ? waitTime + ' min' : Math.floor(waitTime/60) + 'h ' + (waitTime%60) + 'm';
+    return `
+      <div class="queue-item">
+        <div class="flex items-center gap-3">
+          <div class="priority-badge ${patient.level === 1 ? 'level-1' : patient.level === 2 ? 'level-2' : patient.level === 3 ? 'level-3' : patient.level === 4 ? 'level-4' : 'level-5'}">
+            ${patient.level}
+          </div>
+          <div>
+            <div class="font-medium text-sm">Token #${patient.token} • ${patient.name || 'Anonymous'}</div>
+            <div class="text-xs text-gray-500">${patient.age ? patient.age + 'y' : 'N/A'} • ${patient.gender || 'N/A'} • ${waitText} wait</div>
+          </div>
+        </div>
+        <div class="text-sm">
+          <div class="font-medium">${patient.complaint.substring(0, 60)}${patient.complaint.length > 60 ? '...' : ''}</div>
+          <div class="text-xs text-gray-500">${patient.dept} • ${patient.room}</div>
+        </div>
+        <button onclick="callPatient(${patient.token})" class="btn-primary px-4 py-2 text-sm">Call Patient</button>
+      </div>
+    `;
+  }).join('');
+}
+
+function callPatient(token) {
+  const patient = QUEUE_STATE.waiting.find(p => p.token === token);
+  if (!patient) {
+    showToast('Patient not found', 'red');
+    return;
+  }
+  const index = QUEUE_STATE.waiting.indexOf(patient);
+  if (index > -1) {
+    QUEUE_STATE.waiting.splice(index, 1);
+    patient.status = 'consulting';
+    patient.calledTime = Date.now();
+    QUEUE_STATE.consulting = patient;
+    saveQueue();
+    renderQueue();
+    announcePatient(patient);
+    showToast('Patient ' + patient.name + ' called to ' + patient.room, 'green');
+  }
+}
+
+function announcePatient(patient) {
+  const announcement = CURRENT_LANG === 'te' ?
+    `(${patient.name}, token ${patient.token}, ${patient.room} ki velli undi)` :
+    `${patient.name}, token ${patient.token}, please proceed to ${patient.room}`;
+  showToast(announcement, 'purple');
+}
+
+function showToast(message, type = 'info') {
+  const container = document.getElementById('toast-container');
+  const toast = document.createElement('div');
+  const colors = {
+    'red': 'bg-red-500',
+    'green': 'bg-green-500',
+    'orange': 'bg-orange-500',
+    'purple': 'bg-purple-500',
+    'gray': 'bg-gray-500',
+    'blue': 'bg-blue-500'
+  };
+  toast.className = `toast ${colors[type] || 'bg-blue-500'} text-white px-4 py-3 rounded-lg shadow-lg z-50`;
+  toast.textContent = message;
+  container.appendChild(toast);
+  setTimeout(() => toast.classList.add('show'), 10);
+  setTimeout(() => {
+    toast.classList.remove('show');
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+
+function escapeHtml(text) {
+  if (!text) return '';
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function loadSelfTests() {
+  const testList = document.getElementById('self-test-list');
+  const badge = document.getElementById('self-test-badge');
+
+  const tests = [
+    {
+      name: 'SpO2 84 gives Level 1',
+      run: () => {
+        const result = triage({
+          age: 45,
+          gender: 'Male',
+          complaint: 'shortness of breath, SpO2 82%',
+          spo2: 84,
+          pulse: 95,
+          sbp: 120,
+          dbp: 80,
+          temp: 98.6
+        });
+        return result.level === 1;
+      }
+    },
+    {
+      name: 'Stroke text with SBP 195 gives Level 2, Neurology',
+      run: () => {
+        const result = triage({
+          age: 65,
+          gender: 'Female',
+          complaint: 'left facial droop, slurred speech, pakshavatham',
+          spo2: 97,
+          pulse: 90,
+          sbp: 195,
+          dbp: 100,
+          temp: 98.6
+        });
+        return result.level === 2 && result.dept === 'Neurology';
+      }
+    },
+    {
+      name: 'No vitals and vague complaint gives Abstain, never Level 4',
+      run: () => {
+        const result = triage({
+          age: 30,
+          gender: 'Female',
+          complaint: 'something wrong',
+          spo2: '',
+          pulse: '',
+          sbp: '',
+          dbp: '',
+          temp: ''
+        });
+        return result.level === null && result.abstain === true;
+      }
+    },
+    {
+      name: '"ankle pain", age 32, is NOT cardiology',
+      run: () => {
+        const result = triage({
+          age: 32,
+          gender: 'Male',
+          complaint: 'ankle pain',
+          spo2: 98,
+          pulse: 72,
+          sbp: 120,
+          dbp: 80,
+          temp: 98.6
+        });
+        return result.level === 4;
+      }
+    },
+    {
+      name: 'BP 0 marked missing with no crash',
+      run: () => {
+        try {
+          const result = triage({
+            age: 25,
+            gender: 'Female',
+            complaint: 'headache',
+            spo2: 98,
+            pulse: 80,
+            sbp: 0,
+            dbp: 0,
+            temp: 98.6
+          });
+          return result.level === 4;
+        } catch (e) {
+          return false;
+        }
+      }
+    },
+    {
+      name: '"<img src=x onerror=alert(1)>" shows as plain text',
+      run: () => {
+        const input = {
+          age: 28,
+          gender: 'Male',
+          complaint: '<img src=x onerror=alert(1)>',
+          spo2: 98,
+          pulse: 75,
+          sbp: 120,
+          dbp: 80,
+          temp: 98.6
+        };
+        return typeof input.complaint === 'string' && input.complaint.includes('<img');
+      }
+    },
+    {
+      name: 'Calling a patient removes them from queue',
+      run: () => {
+        const patient = {
+          id: 'TEST',
+          token: 999,
+          name: 'Test Patient',
+          age: 30,
+          gender: 'Male',
+          complaint: 'test',
+          level: 4,
+          dept: 'General Medicine',
+          room: 'Room 4',
+          status: 'waiting',
+          arrivalTime: Date.now() - 60000,
+          flags: [],
+          reason: 'test'
+        };
+        QUEUE_STATE.waiting.push(patient);
+        callPatient(999);
+        return !QUEUE_STATE.waiting.some(p => p.token === 999);
+      }
+    }
+  ];
+
+  testList.innerHTML = tests.map((test, index) => {
+    const passed = test.run();
+    return `
+      <div class="test-row">
+        <div class="flex items-center gap-3">
+          <span class="text-sm">Test ${index + 1}: ${test.name}</span>
+          <span class="test-${passed ? 'pass' : 'fail'}">${passed ? '✓ PASS' : '✗ FAIL'}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  const passedCount = tests.filter(t => t.run()).length;
+  const totalCount = tests.length;
+  badge.textContent = passedCount + '/' + totalCount;
+  badge.className = `ml-2 px-2 py-0.5 rounded text-xs font-bold ${passedCount === totalCount ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'}`;
+}
+
+function initializeTabSwitching() {
+  const tabBtns = document.querySelectorAll('.tab-btn');
+  const tabPanes = document.querySelectorAll('.tab-pane');
+
+  tabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tab = btn.getAttribute('data-tab');
+
+      tabBtns.forEach(b => b.classList.remove('active-tab', 'text-purple-700', 'border-purple-300', 'bg-purple-50'));
+      b.classList.add('text-gray-600', 'bg-white', 'border-gray-200', 'hover:bg-gray-50');
+
+      btn.classList.add('active-tab', 'text-purple-700', 'border-purple-300', 'bg-purple-50');
+      btn.classList.remove('text-gray-600', 'bg-white', 'border-gray-200', 'hover:bg-gray-50');
+
+      tabPanes.forEach(pane => pane.classList.add('hidden'));
+      const targetPane = document.getElementById('tab-' + tab);
+      if (targetPane) targetPane.classList.remove('hidden');
+    });
+  });
+}
+
+function setupLanguageToggle() {
+  const toggle = document.getElementById('lang-toggle');
+  toggle.addEventListener('click', () => {
+    CURRENT_LANG = CURRENT_LANG === 'en' ? 'te' : 'en';
+    updateLanguage();
+    showToast('Language changed to ' + (CURRENT_LANG === 'en' ? 'English' : 'Telugu'), 'blue');
+  });
+}
+
+function updateLanguage() {
+  const elements = document.querySelectorAll('[data-i18n]');
+  elements.forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (el.tagName === 'INPUT' && el.getAttribute('placeholder')) {
+      el.setAttribute('placeholder', t(key + '.placeholder'));
+    } else if (el.tagName === 'BUTTON') {
+      el.textContent = t(key);
+    } else if (el.tagName === 'LABEL') {
+      el.textContent = t(key);
+    } else {
+      el.textContent = t(key);
+    }
+  });
+}
+
+function setupThemeToggle() {
+  const toggle = document.getElementById('theme-toggle');
+  const html = document.documentElement;
+
+  const prefersDark = localStorage.getItem('theme') === 'dark' ||
+    (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+
+  if (prefersDark) {
+    html.setAttribute('data-theme', 'dark');
+  }
+
+  toggle.addEventListener('click', () => {
+    if (html.getAttribute('data-theme') === 'dark') {
+      html.removeAttribute('data-theme');
+      localStorage.setItem('theme', 'light');
+    } else {
+      html.setAttribute('data-theme', 'dark');
+      localStorage.setItem('theme', 'dark');
+    }
+  });
+}
+
+function setupVoiceInput() {
+  const voiceBtn = document.getElementById('voice-input-btn');
+  let recognition = null;
+
+  if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
+    recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = CURRENT_LANG === 'te' ? 'te-IN' : 'en-IN';
+
+    recognition.onstart = () => {
+      voiceBtn.classList.add('listening');
+      voiceBtn.title = 'Listening...';
+    };
+
+    recognition.onerror = (event) => {
+      voiceBtn.classList.remove('listening');
+      voiceBtn.title = 'Voice input';
+      showToast('Voice recognition error: ' + event.error, 'red');
+    };
+
+    recognition.onend = () => {
+      voiceBtn.classList.remove('listening');
+      voiceBtn.title = 'Voice input';
+    };
+
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      const complaintArea = document.getElementById('reg-complaint');
+      complaintArea.value = transcript;
+      voiceBtn.classList.remove('listening');
+      voiceBtn.title = 'Voice input';
+      showToast('Voice input: ' + transcript, 'blue');
+    };
+
+    voiceBtn.addEventListener('click', () => {
+      if (recognition) {
+        voiceBtn.classList.add('listening');
+        recognition.lang = CURRENT_LANG === 'te' ? 'te-IN' : 'en-IN';
+        recognition.start();
+      } else {
+        showToast('Speech recognition not supported in this browser', 'red');
+      }
+    });
+  } else {
+    voiceBtn.style.display = 'none';
+  }
+}
+
+function setupPresets() {
+  const presetBtns = document.querySelectorAll('.preset-btn');
+  presetBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const preset = btn.getAttribute('data-preset');
+      applyPreset(preset);
+      showToast('Preset loaded: ' + btn.textContent.trim(), 'blue');
+    });
+  });
+}
+
+function applyPreset(preset) {
+  const presets = {
+    stemi: {
+      name: 'STEMI',
+      age: 58,
+      gender: 'Male',
+      complaint: 'Chest pain, sweating',
+      temp: 98.6,
+      spo2: 97,
+      pulse: 82,
+      sbp: 120,
+      dbp: 80
+    },
+    stroke: {
+      name: 'Stroke (Telugu hemiplegia)',
+      age: 65,
+      gender: 'Female',
+      complaint: 'Telugu hemiplegia, facial droop, slurred speech',
+      temp: 98.6,
+      spo2: 97,
+      pulse: 90,
+      sbp: 195,
+      dbp: 100
+    },
+    vague: {
+      name: 'Vague complaint, no vitals',
+      age: 45,
+      gender: 'Female',
+      complaint: 'I feel unwell',
+      temp: '',
+      spo2: '',
+      pulse: '',
+      sbp: '',
+      dbp: ''
+    },
+    ankle: {
+      name: 'Ankle pain, age 32',
+      age: 32,
+      gender: 'Male',
+      complaint: 'ankle pain',
+      temp: 98.6,
+      spo2: 98,
+      pulse: 72,
+      sbp: 120,
+      dbp: 80
+    },
+    cold: {
+      name: 'Mild cold',
+      age: 28,
+      gender: 'Female',
+      complaint: 'mild cold, cough',
+      temp: 99,
+      spo2: 98,
+      pulse: 76,
+      sbp: 115,
+      dbp: 75
+    },
+    fever: {
+      name: 'High fever',
+      age: 45,
+      gender: 'Female',
+      complaint: 'high fever',
+      temp: 104,
+      spo2: 95,
+      pulse: 110,
+      sbp: 130,
+      dbp: 85
+    },
+    spo2: {
+      name: 'SpO2 84, dyspnea',
+      age: 55,
+      gender: 'Male',
+      complaint: 'dyspnea',
+      temp: 98.6,
+      spo2: 84,
+      pulse: 95,
+      sbp: 120,
+      dbp: 80
+    },
+    xss: {
+      name: 'XSS test complaint',
+      age: 25,
+      gender: 'Male',
+      complaint: '<img src=x onerror=alert(1)>',
+      temp: 98.6,
+      spo2: 98,
+      pulse: 75,
+      sbp: 120,
+      dbp: 80
+    }
+  };
+
+  const presetData = presets[preset];
+  if (!presetData) return;
+
+  document.getElementById('reg-name').value = presetData.name;
+  document.getElementById('reg-age').value = presetData.age;
+  document.getElementById('reg-gender').value = presetData.gender;
+  document.getElementById('reg-complaint').value = presetData.complaint;
+  document.getElementById('reg-temp').value = presetData.temp;
+  document.getElementById('reg-spo2').value = presetData.spo2;
+  document.getElementById('reg-pulse').value = presetData.pulse;
+  document.getElementById('reg-sbp').value = presetData.sbp;
+  document.getElementById('reg-dbpc').value = presetData.dbp;
+}
+
+function setupValidation() {
+  const form = document.getElementById('intake-form');
+  const fields = [
+    { id: 'reg-name', error: 'err-reg-name', required: true },
+    { id: 'reg-age', error: 'err-reg-age', required: true },
+    { id: 'reg-gender', error: 'err-reg-gender', required: true },
+    { id: 'reg-complaint', error: 'err-reg-complaint', required: true },
+    { id: 'reg-temp', error: 'err-reg-temp' },
+    { id: 'reg-spo2', error: 'err-reg-spo2' },
+    { id: 'reg-pulse', error: 'err-reg-pulse' },
+    { id: 'reg-sbp', error: 'err-reg-sbp' },
+    { id: 'reg-dbpc', error: 'err-reg-dbpc' }
+  ];
+
+  fields.forEach(field => {
+    const input = document.getElementById(field.id);
+    const error = document.getElementById(field.error);
+
+    if (!input || !error) return;
+
+    input.addEventListener('input', () => {
+      let isValid = true;
+      const value = input.value.trim();
+
+      if (field.required && !value) {
+        isValid = false;
+      }
+
+      if (!isValid) {
+        input.classList.add('input-error');
+        error.classList.add('visible');
+      } else {
+        input.classList.remove('input-error');
+        error.classList.remove('visible');
+      }
+
+      if (field.id === 'reg-age' && value) {
+        const age = parseInt(value);
+        if (isNaN(age) || age < 0 || age > 120) {
+          input.classList.add('input-error');
+          error.classList.add('visible');
+          isValid = false;
+        }
+      }
+
+      if (field.id === 'reg-spo2' && value) {
+        const spo2 = parseInt(value);
+        if (isNaN(spo2) || spo2 < 50 || spo2 > 100) {
+          input.classList.add('input-error');
+          error.classList.add('visible');
+          isValid = false;
+        }
+      }
+
+      if (field.id === 'reg-pulse' && value) {
+        const pulse = parseInt(value);
+        if (isNaN(pulse) || pulse < 20 || pulse > 250) {
+          input.classList.add('input-error');
+          error.classList.add('visible');
+          isValid = false;
+        }
+      }
+
+      if (field.id === 'reg-sbp' && value) {
+        const sbp = parseInt(value);
+        if (isNaN(sbp) || sbp < 50 || sbp > 300) {
+          input.classList.add('input-error');
+          error.classList.add('visible');
+          isValid = false;
+        }
+      }
+
+      if (field.id === 'reg-dbpc' && value) {
+        const dbp = parseInt(value);
+        if (isNaN(dbp) || dbp < 30 || dbp > 200) {
+          input.classList.add('input-error');
+          error.classList.add('visible');
+          isValid = false;
+        }
+      }
+
+      if (field.id === 'reg-temp' && value) {
+        const temp = parseFloat(value);
+        if (isNaN(temp) || temp < 30 || temp > 45) {
+          input.classList.add('input-error');
+          error.classList.add('visible');
+          isValid = false;
+        }
+      }
+    });
+  });
+}
+
+function setupTriage() {
+  const triageBtn = document.getElementById('triage-btn');
+  const form = document.getElementById('intake-form');
+  const result = document.getElementById('triage-result');
+  const triageDecisionDisplay = document.getElementById('triage-decision-display');
+
+  if (!triageBtn || !form || !result) return;
+
+  triageBtn.addEventListener('click', () => {
+    const formData = {
+      name: document.getElementById('reg-name').value.trim(),
+      age: document.getElementById('reg-age').value,
+      gender: document.getElementById('reg-gender').value,
+      complaint: document.getElementById('reg-complaint').value.trim(),
+      temp: document.getElementById('reg-temp').value,
+      spo2: document.getElementById('reg-spo2').value,
+      pulse: document.getElementById('reg-pulse').value,
+      sbp: document.getElementById('reg-sbp').value,
+      dbp: document.getElementById('reg-dbpc').value
+    };
+
+    if (!formData.name || !formData.age || !formData.gender || !formData.complaint) {
+      showToast('Please fill in all required fields', 'red');
+      return;
+    }
+
+    const triageStart = performance.now();
+    const triageResult = triageWithCost(formData);
+    const responseTime = Math.round(performance.now() - triageStart);
+
+    displayTriageResult(triageResult, responseTime);
+    result.classList.remove('hidden');
+    result.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  });
+}
+
+function displayTriageResult(result, responseTime) {
+  const decisionDisplay = document.getElementById('triage-decision-display');
+  const dispLevel = document.getElementById('disp-level');
+  const dispDept = document.getElementById('disp-dept');
+  const dispRoom = document.getElementById('disp-room');
+  const dispConfidence = document.getElementById('disp-confidence');
+  const dispFlags = document.getElementById('disp-flags');
+  const dispReason = document.getElementById('disp-reason');
+  const dispMissing = document.getElementById('disp-missing');
+
+  let levelClass = '';
+  let levelText = '';
+  if (result.level === 1) levelClass = 'level-1'; levelText = 'Level 1 - Emergency';
+  else if (result.level === 2) levelClass = 'level-2'; levelText = 'Level 2 - Urgent';
+  else if (result.level === 3) levelClass = 'level-3'; levelText = 'Level 3 - Semi-urgent';
+  else if (result.level === 4) levelClass = 'level-4'; levelText = 'Level 4 - Non-urgent';
+  else if (result.level === 5) levelClass = 'level-5'; levelText = 'Level 5 - Stable';
+
+  const levelCard = `
+    <div class="color-card ${levelClass} p-6">
+      <div class="text-xs font-medium mb-1">PRIORITY LEVEL</div>
+      <div class="text-4xl font-bold mb-2">${result.level || 'ABSTAIN'}</div>
+      <div class="text-sm font-medium">${levelText}</div>
+    </div>
+  `;
+
+  decisionDisplay.innerHTML = levelCard;
+
+  if (dispLevel) dispLevel.textContent = result.level || 'ABSTAIN';
+  if (dispDept) dispDept.textContent = result.dept || 'Unknown';
+  if (dispRoom) dispRoom.textContent = result.room || 'Unknown';
+  if (dispConfidence) dispConfidence.textContent = result.confidence || 'Low';
+
+  if (dispFlags) {
+    if (result.flags && result.flags.length > 0) {
+      const flagsHtml = result.flags.map(flag => `
+        <span class="inline-block px-2 py-1 bg-red-50 text-red-700 text-xs rounded mr-2 mb-2">⚠ ${flag}</span>
+      `).join('');
+      dispFlags.innerHTML = `<div class="text-xs font-medium mb-2">Red Flags Found:</div>${flagsHtml}`;
+    } else {
+      dispFlags.innerHTML = '';
+    }
+  }
+
+  if (dispReason) {
+    const reasonText = result.reason || 'No reason provided';
+    dispReason.innerHTML = `<div class="font-medium mb-1">Why:</div><div>${reasonText}</div>`;
+  }
+
+  if (dispMissing) {
+    if (result.missingVitals && result.missingVitals.length > 0) {
+      dispMissing.innerHTML = `<div class="font-medium mb-1">Missing vital signs:</div><div>${result.missingVitals.join(', ')}</div>`;
+    } else {
+      dispMissing.innerHTML = '';
+    }
+  }
+
+  setupActionButtons(result);
+}
+
+function setupActionButtons(result) {
+  const addToQueueBtn = document.getElementById('add-to-queue-btn');
+  const abstainNurseBtn = document.getElementById('abstain-nurse-btn');
+  const overrideBtn = document.getElementById('override-btn');
+
+  if (!addToQueueBtn || !abstainNurseBtn || !overrideBtn) return;
+
+  addToQueueBtn.style.display = result.level && result.level >= 1 && result.level <= 5 ? 'inline-block' : 'none';
+  abstainNurseBtn.style.display = result.abstain ? 'inline-block' : 'none';
+
+  addToQueueBtn.onclick = () => {
+    const patientData = {
+      name: document.getElementById('reg-name').value.trim(),
+      age: document.getElementById('reg-age').value,
+      gender: document.getElementById('reg-gender').value,
+      complaint: document.getElementById('reg-complaint').value.trim(),
+      temp: document.getElementById('reg-temp').value,
+      spo2: document.getElementById('reg-spo2').value,
+      pulse: document.getElementById('reg-pulse').value,
+      sbp: document.getElementById('reg-sbp').value,
+      dbp: document.getElementById('reg-dbpc').value
+    };
+
+    const triageResult = triageWithCost(patientData);
+    addToQueue(patientData, triageResult);
+    showToast('Patient added to queue with Token #' + QUEUE_STATE.nextToken, 'green');
+  };
+
+  abstainNurseBtn.onclick = () => {
+    showToast('Patient sent to Nurse STAT Desk', 'purple');
+  };
+
+  overrideBtn.onclick = () => {
+    const reason = prompt('Override reason:');
+    if (reason) {
+      showToast('Override logged: ' + reason, 'orange');
+    }
+  };
+}
+
+function setupPrintSlip() {
+  window.addEventListener('beforeprint', () => {
+    document.body.classList.add('printing');
+  });
+
+  window.addEventListener('afterprint', () => {
+    document.body.classList.remove('printing');
+  });
+}
+
+function initialize() {
+  loadQueue();
+  loadSelfTests();
+  initializeTabSwitching();
+  setupLanguageToggle();
+  setupThemeToggle();
+  setupVoiceInput();
+  setupPresets();
+  setupValidation();
+  setupTriage();
+  setupPrintSlip();
+
+  updateLanguage();
+}
+
+window.addEventListener('DOMContentLoaded', initialize);
+
+console.log('Prana Priority app initialized');
