@@ -53,6 +53,49 @@ PranaTriage/
 - **Priority Level Reference card:** visual legend for all 5 levels (Red/Emergency through Blue/Stable) with room assignments
 - Safety rule summary: under-triaging a true emergency is penalized 20× more than over-triaging a mild case
 
+
+
+### 4. Smart Patient Intake & Multilingual AI Assistance (`index.html` → "Smart Patient Intake" tab)
+
+A 5-step patient registration and smart intake workflow:
+
+**Step 1 — Registration:**
+- Patient Full Name (required)
+- Aadhaar Number (optional — masked by default, last 4 digits only, show/hide toggle)
+- Phone Number (optional — Indian mobile, +91 format supported)
+- Patient Registration ID (auto-generated unique ID)
+- Age (required)
+- Gender (dropdown)
+- All fields validated with clear error messages
+
+**Step 2 — Symptoms & Medical History:**
+- Chief Complaint (required — English, Telugu, or Hindi including Telugu in English letters)
+- Duration of Symptoms (required)
+- Existing Medical Conditions, Current Medications, Allergies (optional)
+
+**Multilingual AI Assistance:**
+- "Normalize Complaint Text" — normalizes/translates complaint without changing meaning
+- "Suggest Clarification Questions" — neutral questions when information is unclear
+- Preserves negations (e.g., "no chest pain")
+- **Never** sends patient identifiers (name, Aadhaar, phone) to AI endpoints
+- **Never** determines triage priority
+
+**Step 3 — Vital Signs (optional):**
+- Blood Pressure (systolic/diastolic), Pulse Rate, Respiratory Rate, Temperature, Oxygen Saturation
+
+**Step 4 — Review & Submit:**
+- Full registration summary for review
+- Privacy notice displayed
+- All sensitive identifiers masked in routine views
+
+**Step 5 — Triage Assessment & Queue:**
+- Deterministic triage assessment with suggested priority level
+- Relevant department assignment
+- Explicit warning signs and triggering factors
+- Missing information highlighted
+- Patient added to existing priority queue
+- Registration ID displayed; Aadhaar/phone hidden from routine queue
+
 ## Triage Logic
 
 ### Frontend (`index.html` — `determinePriority`)
