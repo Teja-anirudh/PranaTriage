@@ -236,30 +236,29 @@
         }
     </script>
 
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script>
+        async function submitTriage() {
+            if (!window.db) {
+                alert('Firebase is unavailable right now. Triage data was not saved.');
+                return;
+            }
 
-
-
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyDlGelOJE4rwFElr6rGUfhLzwJiE2r4sFs",
-  authDomain: "triage-5a021.firebaseapp.com",
-  projectId: "triage-5a021",
-  storageBucket: "triage-5a021.firebasestorage.app",
-  messagingSenderId: "399820391961",
-  appId: "1:399820391961:web:8526da295b6b7954b74c88",
-  measurementId: "G-R9MV16KYTQ"
-};
-
-// Initialize Firebase
-
-
-const app = firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
-const analytics = firebase.Analytics();
-
-console.log("Firebase initialized successfully!");
+            await window.db.collection('triage').add({
+                age: document.getElementById('age').value,
+                sex: document.getElementById('sex').value,
+                spo2: document.getElementById('spo2').value,
+                pulse: document.getElementById('pulse').value,
+                sbp: document.getElementById('bp-sys').value,
+                complaint: document.getElementById('complaint').value,
+                temp: document.getElementById('temp').value,
+                timestamp: Date.now(),
+                result: currentResult
+            });
+            alert('Triage data submitted to Firebase!');
+        }
     </script>
-
 </body>
 </html>
