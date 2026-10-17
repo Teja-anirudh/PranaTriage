@@ -95,6 +95,119 @@
     .no-alert {
       all: unset;
     }
+
+    /* ==========================================
+       DARK MODE COMPONENT OVERRIDES
+       ========================================== */
+    [data-theme="dark"] .btn-secondary {
+      @apply bg-gray-700 text-gray-200 border-gray-600 hover:bg-gray-600;
+    }
+
+    [data-theme="dark"] .tab-btn {
+      @apply bg-gray-800 text-gray-300 border-gray-600 hover:bg-gray-700 hover:text-white;
+    }
+
+    [data-theme="dark"] input,
+    [data-theme="dark"] select {
+      @apply bg-gray-800 text-white border-gray-600 focus:ring-purple-500;
+    }
+
+    [data-theme="dark"] input::placeholder {
+      @apply text-gray-400;
+    }
+
+    [data-theme="dark"] .card {
+      @apply bg-gray-800 border-gray-700;
+    }
+
+    [data-theme="dark"] .color-card {
+      @apply text-white;
+    }
+
+    [data-theme="dark"] .patient-item {
+      @apply bg-gray-800/50 border-gray-700 text-gray-200 hover:bg-gray-700;
+    }
+
+    [data-theme="dark"] .patient-item span:last-child {
+      @apply text-gray-200;
+    }
+
+    [data-theme="dark"] .symptom-chip {
+      @apply bg-gray-800 text-gray-300 border-gray-700 hover:bg-gray-700 hover:text-white;
+    }
+
+    [data-theme="dark"] .toast {
+      @apply text-black;
+    }
+
+    [data-theme="dark"] .toast.bg-purple-600,
+    [data-theme="dark"] .toast.bg-red-600,
+    [data-theme="dark"] .toast.bg-orange-600,
+    [data-theme="dark"] .toast.bg-yellow-600,
+    [data-theme="dark"] .toast.bg-green-600,
+    [data-theme="dark"] .toast.bg-blue-600 {
+      @apply text-white;
+    }
+
+    /* ==========================================
+       PRINT STYLES
+       ========================================== */
+    @media print {
+      .no-print,
+      #theme-toggle,
+      .tab-btn,
+      .btn-primary,
+      #abstention-btn,
+      #call-next-btn,
+      #print-btn,
+      .toast,
+      .tab-pane.hidden {
+        display: none !important;
+      }
+
+      body {
+        background: #ffffff !important;
+        color: #000000 !important;
+      }
+
+      .card {
+        border: 1px solid #000000 !important;
+        box-shadow: none !important;
+        background: #ffffff !important;
+      }
+
+      .color-card {
+        border: 2px solid #000000 !important;
+        background: #ffffff !important;
+        color: #000000 !important;
+        page-break-inside: avoid;
+      }
+
+      #patient-list .patient-item {
+        break-inside: avoid;
+        border: 1px solid #000000 !important;
+        margin-bottom: 12px;
+        padding: 10px;
+        background: #ffffff !important;
+        color: #000000 !important;
+      }
+
+      #patient-list .patient-item span:last-child {
+        color: #000000 !important;
+      }
+
+      .level-1 { background: #fecaca !important; color: #991b1b !important; }
+      .level-2 { background: #fdba74 !important; color: #9c4221 !important; }
+      .level-3 { background: #fef3c7 !important; color: #713f12 !important; }
+      .level-4 { background: #dcfce7 !important; color: #14532d !important; }
+      .level-5 { background: #dbeafe !important; color: #1e40af !important; }
+
+      h1, h2, h3, h4, p, span, div {
+        color: #000000 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+    }
   </style>
 </head>
 <body class="min-h-screen p-4">
@@ -103,6 +216,7 @@
   <header class="mb-8 text-center">
     <h1 class="text-3xl font-bold tracking-tight">PranaTriage • OPD CareTrack</h1>
     <p class="text-sm text-gray-600 mt-1">Outpatient Triage & Priority Queue System</p>
+  <button id="theme-toggle" class="px-3 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors border border-gray-300" title="Toggle dark mode">🌓</button>
   </header>
 
   <!-- Tabs Navigation -->
@@ -249,6 +363,34 @@
           <button id="call-next-btn" class="btn-primary px-6 py-2.5 font-medium">Call Next Patient</button>
         </div>
         
+        <!-- Search / Filter -->
+        <div class="relative mb-4">
+          <input id="queue-search" type="text" placeholder="Search patients by age, gender, language..." class="w-full rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500">
+        </div>
+
+        <!-- Wait-time Estimates -->
+        <div id="wait-time-estimates" class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
+          <div class="p-2 rounded-lg bg-gray-50 text-center border border-gray-200">
+            <div class="text-xs text-gray-500">Level 1</div>
+            <div class="text-sm font-bold text-red-600" id="wait-level-1">&lt;2 min</div>
+          </div>
+          <div class="p-2 rounded-lg bg-gray-50 text-center border border-gray-200">
+            <div class="text-xs text-gray-500">Level 2</div>
+            <div class="text-sm font-bold text-orange-600" id="wait-level-2">&lt;10 min</div>
+          </div>
+          <div class="p-2 rounded-lg bg-gray-50 text-center border border-gray-200">
+            <div class="text-xs text-gray-500">Level 3</div>
+            <div class="text-sm font-bold text-yellow-600" id="wait-level-3">&lt;20 min</div>
+          </div>
+          <div class="p-2 rounded-lg bg-gray-50 text-center border border-gray-200">
+            <div class="text-xs text-gray-500">Level 4</div>
+            <div class="text-sm font-bold text-green-600" id="wait-level-4">&lt;30 min</div>
+          </div>
+          <div class="p-2 rounded-lg bg-gray-50 text-center border border-gray-200">
+            <div class="text-xs text-gray-500">Level 5</div>
+            <div class="text-sm font-bold text-blue-600" id="wait-level-5">&lt;45 min</div>
+          </div>
+        </div>
         <p class="text-sm text-gray-500 mb-4" id="queue-status">Waiting for patients...</p>
         
         <div id="patient-list" class="space-y-3 max-h-80 overflow-y-auto">
@@ -290,6 +432,38 @@
           <p class="text-sm text-gray-500 mt-4">Emergency patients (Level 1) reduce wait from <strong>34.2 minutes</strong> to under <strong>2 minutes</strong> with priority triage.</p>
         </div>
 
+        <!-- Priority Level Legend -->
+        <div class="card p-6">
+          <h2 class="text-xl font-semibold mb-4">Priority Level Reference</h2>
+          <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+            <div class="p-3 rounded-lg bg-red-100 text-red-800 text-center border border-red-200">
+              <div class="text-xs font-bold uppercase">Level 1</div>
+              <div class="text-sm font-bold">Red / Emergency</div>
+              <div class="text-xs text-red-600 mt-1">Casualty</div>
+            </div>
+            <div class="p-3 rounded-lg bg-orange-100 text-orange-800 text-center border border-orange-200">
+              <div class="text-xs font-bold uppercase">Level 2</div>
+              <div class="text-sm font-bold">Orange / Urgent</div>
+              <div class="text-xs text-orange-600 mt-1">Cardiology / Neuro</div>
+            </div>
+            <div class="p-3 rounded-lg bg-yellow-100 text-yellow-800 text-center border border-yellow-200">
+              <div class="text-xs font-bold uppercase">Level 3</div>
+              <div class="text-sm font-bold">Yellow / Semi-urgent</div>
+              <div class="text-xs text-yellow-600 mt-1">General Ward</div>
+            </div>
+            <div class="p-3 rounded-lg bg-green-100 text-green-800 text-center border border-green-200">
+              <div class="text-xs font-bold uppercase">Level 4</div>
+              <div class="text-sm font-bold">Green / Non-urgent</div>
+              <div class="text-xs text-green-600 mt-1">OPD</div>
+            </div>
+            <div class="p-3 rounded-lg bg-blue-100 text-blue-800 text-center border border-blue-200">
+              <div class="text-xs font-bold uppercase">Level 5</div>
+              <div class="text-sm font-bold">Blue / Stable</div>
+              <div class="text-xs text-blue-600 mt-1">Follow-up</div>
+            </div>
+          </div>
+          <p class="text-xs text-gray-500 mt-3">Under-triaging a true emergency is penalized 20× more than over-triaging a mild case.</p>
+        </div>
         <!-- Cost & Safety Metrics -->
         <div class="card p-6">
           <h2 class="text-xl font-semibold mb-4">Clinical Safety Metrics</h2>
@@ -533,6 +707,7 @@
           <p class="text-xs text-gray-500">${patientData.language === 'telugu' ? 'తెలుగు' : patientData.language === 'hindi' ? 'हिंदी' : 'English'}</p>
         </div>
         <span class="text-sm font-bold ${priorityClass}">${result.level}</span>
+        <button class="discharge-btn ml-4 px-3 py-1 rounded bg-red-50 text-red-600 text-xs font-medium border border-red-200 hover:bg-red-100 transition-colors no-print" title="Discharge / mark seen">✓</button>
       `;
       
       // Insert at beginning (highest priority first)
@@ -562,7 +737,33 @@
       
       // Show toast
       showToast(`Patient triaged as Level ${result.level}`, priorityClass);
+
+      // Update wait-time estimates
+      updateWaitTimeEstimates();
     }
+
+    // Discharge / mark seen handler (delegated)
+    document.getElementById('patient-list').addEventListener('click', (e) => {
+      const btn = e.target.closest('.discharge-btn');
+      if (!btn) return;
+      const li = btn.closest('.patient-item');
+      if (li) {
+        li.remove();
+        const list = document.getElementById('patient-list');
+        // Renumber rooms
+        const remaining = list.children;
+        for (let i = 0; i < remaining.length; i++) {
+          remaining[i].querySelector('span:first-child').textContent = i + 1;
+        }
+        // Show empty state if needed
+        const empty = document.getElementById('empty-state');
+        if (list.children.length === 0) {
+          empty.classList.remove('hidden');
+        }
+        updateWaitTimeEstimates();
+        showToast("Patient discharged", "gray");
+      }
+    });
 
     // ==========================================
     // QUEUE MANAGEMENT
@@ -595,6 +796,9 @@
       if (list.children.length === 0) {
         empty.classList.remove('hidden');
       }
+
+      // Update wait-time estimates
+      updateWaitTimeEstimates();
     });
 
     // ==========================================
@@ -661,6 +865,73 @@
           processTriage();
         }
       });
+    });
+
+    // ==========================================
+    // WAIT-TIME ESTIMATES
+    // ==========================================
+    const WAIT_TIMES = { 1: '<2 min', 2: '<10 min', 3: '<20 min', 4: '<30 min', 5: '<45 min' };
+
+    function updateWaitTimeEstimates() {
+      const list = document.getElementById('patient-list');
+      const counts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+      for (const item of list.children) {
+        const level = parseInt(item.querySelector('span:last-of-type').textContent, 10);
+        if (counts[level] !== undefined) counts[level]++;
+      }
+      // Estimate: each patient ahead adds ~8 min per level tier
+      for (const [level, label] of Object.entries(WAIT_TIMES)) {
+        const el = document.getElementById(`wait-level-${level}`);
+        const ahead = counts[level];
+        if (ahead === 0) {
+          el.textContent = 'None';
+          el.className = 'text-sm font-bold text-gray-600';
+        } else {
+          const mins = ahead * 8;
+          el.textContent = `<${mins} min`;
+          el.className = 'text-sm font-bold';
+        }
+      }
+    }
+
+    // ==========================================
+    // SEARCH / FILTER
+    // ==========================================
+    const queueSearch = document.getElementById('queue-search');
+    queueSearch.addEventListener('input', () => {
+      const term = queueSearch.value.toLowerCase();
+      const list = document.getElementById('patient-list');
+      for (const item of list.children) {
+        const text = item.textContent.toLowerCase();
+        item.style.display = text.includes(term) ? 'flex' : 'none';
+      }
+      // Update empty state visibility based on filtered results
+      const visible = Array.from(list.children).some(item => item.style.display !== 'none');
+      const empty = document.getElementById('empty-state');
+      if (list.children.length === 0) {
+        empty.classList.remove('hidden');
+      } else if (!visible) {
+        empty.classList.remove('hidden');
+      } else {
+        empty.classList.add('hidden');
+      }
+    });
+
+    // ==========================================
+    // DARK MODE TOGGLE
+    // ==========================================
+    const themeToggle = document.getElementById('theme-toggle');
+    const htmlEl = document.documentElement;
+
+    themeToggle.addEventListener('click', () => {
+      const isDark = htmlEl.getAttribute('data-theme') === 'dark';
+      if (isDark) {
+        htmlEl.setAttribute('data-theme', 'light');
+        themeToggle.textContent = '🌓';
+      } else {
+        htmlEl.setAttribute('data-theme', 'dark');
+        themeToggle.textContent = '🌙';
+      }
     });
   </script>
 </body>

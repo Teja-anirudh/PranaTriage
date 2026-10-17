@@ -40,11 +40,16 @@ PranaTriage/
 - **Color-coded result card** + print button
 ### 2. Doctor Queue (`index.html` → "Doctor Queue" tab)
 - Priority-ordered patient queue (Level 1 → Level 5)
+- **Search / filter:** type in the search box to filter patients by age, gender, or language
+- **Discharge / mark-as-seen:** each queue item has a ✓ button to discharge the patient and renumber remaining rooms
+- **Wait-time estimates:** per-priority-level estimated wait times that update dynamically as the queue changes
 - Call-next consultation with automatic room-number renumbering
 - Empty-state handling when the queue drains
+- Print-friendly output via the browser's print dialog (`@media print` styles)
 
 ### 3. Wait-Time Analytics (`index.html` → "Wait-Time Analytics" tab)
 - Mean asymmetric loss and critical-miss-rate indicators
+- **Priority Level Reference card:** visual legend for all 5 levels (Red/Emergency through Blue/Stable) with room assignments
 - Safety rule summary: under-triaging a true emergency is penalized 20× more than over-triaging a mild case
 
 ## Triage Logic
@@ -124,7 +129,8 @@ Requires: `pandas`, `numpy` (Python 3).
 
 - Works in Chrome, Edge, Firefox, Safari (mobile and desktop)
 - Responsive grid layout (single-column on mobile, two-column on lg+)
-- Dark-mode support via `data-theme="dark"` CSS variables
+- **Dark mode toggle:** 🌓 button in the header switches between light and dark themes (persists via `data-theme="dark"`)
+- **Print-friendly:** browser print dialog produces a clean queue/token view (UI controls hidden via `@media print`)
 - Keyboard: Enter key submits the triage form from any input
 
 ## Roadmap / Future Work
