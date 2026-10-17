@@ -235,5 +235,31 @@
             output.innerText = results;
         }
     </script>
+
+
+
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyDlGelOJE4rwFElr6rGUfhLzwJiE2r4sFs",
+  authDomain: "triage-5a021.firebaseapp.com",
+  projectId: "triage-5a021",
+  storageBucket: "triage-5a021.firebasestorage.app",
+  messagingSenderId: "399820391961",
+  appId: "1:399820391961:web:8526da295b6b7954b74c88",
+  measurementId: "G-R9MV16KYTQ"
+};
+
+// Initialize Firebase
+
+
+const app = firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const analytics = firebase.Analytics();
+
+console.log("Firebase initialized successfully!");
+    </script>
+
 </body>
 </html>
