@@ -6,7 +6,7 @@ Outpatient Triage & Priority Queue System — a standalone, offline-first clinic
 
 PranaTriage helps outpatient departments (OPD) triage patients at the nurse intake desk, assign color-coded priority levels, manage a doctor-facing consultation queue, and monitor wait-time / triage-safety analytics. It is designed for low-resource settings with multilingual support (English, Telugu, Hindi) and runs entirely in the browser with no backend dependency.
 
-> **Status:** Standalone frontend + offline benchmark. Firebase/backend integration is planned for a later phase (persisted queue, auth, cloud analytics).
+> **Status:** Firebase backend integrated (Firestore persistence + real-time sync). Offline benchmark included.
 
 ## Repository Structure
 
@@ -46,6 +46,7 @@ PranaTriage/
 - Call-next consultation with automatic room-number renumbering
 - Empty-state handling when the queue drains
 - Print-friendly output via the browser's print dialog (`@media print` styles)
+- **Firebase persistence:** queue is saved to Firestore and synced in real-time across devices
 
 ### 3. Wait-Time Analytics (`index.html` → "Wait-Time Analytics" tab)
 - Mean asymmetric loss and critical-miss-rate indicators
@@ -125,17 +126,53 @@ Requires: `pandas`, `numpy` (Python 3).
 3. **Call the next patient:** switch to the Doctor Queue tab and click "Call Next."
 4. **Run the benchmark:** `python3 evaluate.py` to validate safety metrics offline.
 
+
+
+## Firebase Backend Integration
+
+PranaTriage now uses **Firebase Firestore** as its backend for persistent, multi-device queue synchronization.
+
+### What's stored in Firestore
+The `patients` collection stores one document per triaged patient:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `age` | number | Patient age in years |
+| `gender` | string | Patient gender |
+| `language` | string | Language preference (English/Telugu/Hindi) |
+| `vitals` | object | Sanitized vitals (tempC, systolic, diastolic, shockIndex, pulse, spo2, age, bpDisconnected) |
+| `symptoms` | array | Selected symptom chips |
+| `level` | number | Triage priority level (1–5) |
+| `room` | string | Assisted room/department |
+| `color` | string | Priority color (red/orange/yellow/green/blue) |
+| `status` | string | `waiting`, `called`, or `discharged` |
+| `createdAt` | timestamp | Server timestamp when triaged |
+| `calledAt` | timestamp | Server timestamp when called for consultation |
+
+### How it works
+1. **Add patient:** When a patient is triaged, the record is written to Firestore and immediately rendered in the local queue
+2. **Real-time sync:** An `onSnapshot` listener keeps the queue in sync across all connected devices — patients added, called, or discharged on one device appear on all others
+3. **Call next:** Updates the patient's `status` to `called` in Firestore and removes from the active queue
+4. **Discharge:** Deletes the patient document from Firestore
+5. **Offline resilience:** Firebase offline persistence caches writes locally and syncs when connectivity returns
+
+### Connection indicator
+A status badge in the header shows the current Firebase connection state:
+- 🟢 **Connected** — Firestore is reachable, reads/writes are live
+- 🔴 **Offline** — Firestore is unreachable; app continues working locally with cached data
+
 ## Browser & Accessibility
 
 - Works in Chrome, Edge, Firefox, Safari (mobile and desktop)
 - Responsive grid layout (single-column on mobile, two-column on lg+)
 - **Dark mode toggle:** 🌓 button in the header switches between light and dark themes (persists via `data-theme="dark"`)
 - **Print-friendly:** browser print dialog produces a clean queue/token view (UI controls hidden via `@media print`)
+- **Firebase connection status:** live indicator in the header shows Connected / Offline state
 - Keyboard: Enter key submits the triage form from any input
 
 ## Roadmap / Future Work
 
-- Firebase / backend integration (persisted queue, authentication, cloud analytics) — noted as "to be added later"
+- ✅ Firebase / backend integration — complete (Firestore persistence + real-time sync)
 - Unit tests for `sanitizeVitals` / `determinePriority` / `assign_triage_level`
 - CI safety gate that fails the build if sensitivity < 98% or miss rate > 2%
 - Additional clinical parameters (respiratory rate, GCS, pain score)

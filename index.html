@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PranaTriage • OPD CareTrack</title>
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <!-- Firebase SDK (Compat) -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght:400,500,600,700&display=swap" rel="stylesheet">
@@ -217,6 +220,7 @@
     <h1 class="text-3xl font-bold tracking-tight">PranaTriage • OPD CareTrack</h1>
     <p class="text-sm text-gray-600 mt-1">Outpatient Triage & Priority Queue System</p>
   <button id="theme-toggle" class="px-3 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors border border-gray-300" title="Toggle dark mode">🌓</button>
+  <span id="firebase-status" class="px-3 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-600 border border-gray-300">● Firebase: Connecting</span>
   </header>
 
   <!-- Tabs Navigation -->
@@ -508,6 +512,70 @@
 
   <script>
     // ==========================================
+    // FIREBASE BACKEND INTEGRATION
+    // ==========================================
+
+    // Your web app's Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyDlGelOJE4rwFElr6rGUfhLzwJiE2r4sFs",
+      authDomain: "triage-5a021.firebaseapp.com",
+      projectId: "triage-5a021",
+      storageBucket: "triage-5a021.firebasestorage.app",
+      messagingSenderId: "399820391961",
+      appId: "1:399820391961:web:8526da295b6b7954b74c88",
+      measurementId: "G-R9MV16KYTQ"
+    };
+
+    // Initialize Firebase (Compat SDK)
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // Enable offline persistence
+    db.enablePersistence()
+      .catch((err) => {
+        console.warn('Firebase offline persistence:', err.code);
+      });
+
+    // Firebase connection status indicator
+    const firebaseStatusEl = document.getElementById('firebase-status');
+
+    function setFirebaseStatus(connected) {
+      if (connected) {
+        firebaseStatusEl.className = 'px-3 py-1 rounded-md text-xs font-medium bg-green-100 text-green-800 border border-green-200';
+        firebaseStatusEl.textContent = '● Firebase: Connected';
+      } else {
+        firebaseStatusEl.className = 'px-3 py-1 rounded-md text-xs font-medium bg-red-100 text-red-800 border border-red-200';
+        firebaseStatusEl.textContent = '● Firebase: Offline';
+      }
+    }
+
+    // Simple connectivity check via a lightweight Firestore operation
+    let firebaseConnected = false;
+    function checkFirebaseConnection() {
+      db.collection('_connection_check').doc('ping').get()
+        .then(() => {
+          if (!firebaseConnected) {
+            firebaseConnected = true;
+            setFirebaseStatus(true);
+          }
+        })
+        .catch(() => {
+          firebaseConnected = false;
+          setFirebaseStatus(false);
+        });
+    }
+    checkFirebaseConnection();
+    setInterval(checkFirebaseConnection, 30000);
+
+    // STATE - application state with Firebase reference
+    const STATE = {
+      nextRoom: 1,
+      db,
+      patientsCollection: db.collection('patients'),
+      unsubscribeQueue: null
+    };
+
+    // ==========================================
     // VALIDATION & SANITIZATION
     // ==========================================
     
@@ -691,34 +759,38 @@
       card.scrollIntoView({ behavior: 'smooth' });
     }
 
-    function addToQueue(result, patientData) {
+    // ==========================================
+    // FIREBASE INTEGRATION - QUEUE RENDERING
+    // ==========================================
+
+    // Render a single patient to the queue UI (used by both local triage and Firebase sync)
+    function renderPatientToQueueUI(patientData, level, docId, roomNumber) {
       const list = document.getElementById('patient-list');
       const empty = document.getElementById('empty-state');
-      
-      // Create list item
-      const priorityClass = result.level === 1 ? 'level-1' : result.level === 2 ? 'level-2' : result.level === 3 ? 'level-3' : result.level === 4 ? 'level-4' : 'level-5';
-      
+
+      const priorityClass = level === 1 ? 'level-1' : level === 2 ? 'level-2' : level === 3 ? 'level-3' : level === 4 ? 'level-4' : 'level-5';
+
       const li = document.createElement('div');
       li.className = `patient-item flex items-center py-3 px-4 rounded-lg border-l-4 ${priorityClass} hover:bg-gray-50 transition-colors`;
+      li.setAttribute('data-docid', docId || '');
       li.innerHTML = `
-        <span class="w-8 text-center font-bold">${STATE.nextRoom}</span>
+        <span class="w-8 text-center font-bold">${roomNumber}</span>
         <div class="flex-1">
           <p class="font-medium truncate">${patientData.age}yr ${patientData.gender}</p>
           <p class="text-xs text-gray-500">${patientData.language === 'telugu' ? 'తెలుగు' : patientData.language === 'hindi' ? 'हिंदी' : 'English'}</p>
         </div>
-        <span class="text-sm font-bold ${priorityClass}">${result.level}</span>
+        <span class="text-sm font-bold ${priorityClass}">${level}</span>
         <button class="discharge-btn ml-4 px-3 py-1 rounded bg-red-50 text-red-600 text-xs font-medium border border-red-200 hover:bg-red-100 transition-colors no-print" title="Discharge / mark seen">✓</button>
       `;
-      
-      // Insert at beginning (highest priority first)
+
+      // Insert sorted by priority level (1 first, then 2, 3, 4, 5)
+      const priorityOrder = { 1: 0, 2: 1, 3: 2, 4: 3, 5: 4 };
+      const newPriority = priorityOrder[level] || 4;
+
       if (list.children.length === 0) {
         list.appendChild(li);
         empty.classList.add('hidden');
       } else {
-        // Sort by priority level (1 first, then 2, then 3)
-        const priorityOrder = { 1: 0, 2: 1, 3: 2, 4: 3, 5: 4 };
-        const newPriority = priorityOrder[result.level] || 4;
-        
         let inserted = false;
         for (let i = 0; i < list.children.length; i++) {
           const existingPriority = parseInt(list.children[i].querySelector('span:last-child').textContent) || 3;
@@ -732,11 +804,64 @@
           list.appendChild(li);
         }
       }
-      
+
+      return li;
+    }
+
+    function renumberRooms() {
+      const list = document.getElementById('patient-list');
+      const remaining = list.children;
+      for (let i = 0; i < remaining.length; i++) {
+        remaining[i].querySelector('span:first-child').textContent = i + 1;
+      }
+    }
+
+    function priorityClassFromLevel(level) {
+      return level === 1 ? 'level-1' : level === 2 ? 'level-2' : level === 3 ? 'level-3' : level === 4 ? 'level-4' : 'level-5';
+    }
+
+    function addToQueue(result, patientData) {
+      const roomNumber = STATE.nextRoom;
+
+      // Render locally first for immediate feedback
+      renderPatientToQueueUI(patientData, result.level, null, roomNumber);
+
       STATE.nextRoom++;
-      
+
+      // Save to Firebase
+      const patientRecord = {
+        age: patientData.age,
+        gender: patientData.gender,
+        language: patientData.language,
+        vitals: patientData.vitals,
+        symptoms: patientData.symptoms,
+        level: result.level,
+        room: result.room,
+        color: result.color,
+        icon: result.icon,
+        description: result.description,
+        status: 'waiting',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      };
+
+      STATE.patientsCollection.add(patientRecord)
+        .then((docRef) => {
+          // Tag the most recently rendered li without a docId
+          const lis = document.getElementById('patient-list').children;
+          for (let i = lis.length - 1; i >= 0; i--) {
+            if (!lis[i].getAttribute('data-docid') || lis[i].getAttribute('data-docid') === '') {
+              lis[i].setAttribute('data-docid', docRef.id);
+              break;
+            }
+          }
+        })
+        .catch((error) => {
+          console.error('Error saving patient to Firebase:', error);
+          showToast('Patient saved locally - Firebase sync pending', 'orange');
+        });
+
       // Show toast
-      showToast(`Patient triaged as Level ${result.level}`, priorityClass);
+      showToast(`Patient triaged as Level ${result.level}`, priorityClassFromLevel(result.level));
 
       // Update wait-time estimates
       updateWaitTimeEstimates();
@@ -748,13 +873,17 @@
       if (!btn) return;
       const li = btn.closest('.patient-item');
       if (li) {
+        const docId = li.getAttribute('data-docid');
+        if (docId) {
+          STATE.patientsCollection.doc(docId).delete()
+            .catch((error) => {
+              console.error('Error removing patient from Firebase:', error);
+            });
+        }
         li.remove();
         const list = document.getElementById('patient-list');
         // Renumber rooms
-        const remaining = list.children;
-        for (let i = 0; i < remaining.length; i++) {
-          remaining[i].querySelector('span:first-child').textContent = i + 1;
-        }
+        renumberRooms();
         // Show empty state if needed
         const empty = document.getElementById('empty-state');
         if (list.children.length === 0) {
@@ -780,14 +909,19 @@
         return;
       }
       
+      const docId = firstPatient.getAttribute('data-docid');
+      if (docId) {
+        STATE.patientsCollection.doc(docId).update({ status: 'called', calledAt: firebase.firestore.FieldValue.serverTimestamp() })
+          .catch((error) => {
+            console.error('Error updating patient status in Firebase:', error);
+          });
+      }
+
       // Remove first patient
       firstPatient.remove();
-      
+
       // Update room numbers
-      const remaining = list.children;
-      for (let i = 0; i < remaining.length; i++) {
-        remaining[i].querySelector('span:first-child').textContent = i + 1;
-      }
+      renumberRooms();
       
       showToast("Patient called for consultation", "purple");
       
@@ -824,9 +958,76 @@
       }, 3000);
     }
 
+
+    // ==========================================
+    // FIREBASE INTEGRATION - REAL-TIME QUEUE SYNC
+    // ==========================================
+
+    // Load existing patients from Firebase and set up real-time listener
+    function initFirebaseQueue() {
+      // Load existing waiting patients
+      STATE.patientsCollection
+        .where('status', '==', 'waiting')
+        .orderBy('createdAt', 'asc')
+        .get()
+        .then((snapshot) => {
+          if (snapshot.empty) return;
+
+          let roomNum = 1;
+          snapshot.forEach((doc) => {
+            const data = doc.data();
+            renderPatientToQueueUI(data, data.level, doc.id, roomNum);
+            roomNum++;
+          });
+          STATE.nextRoom = roomNum;
+          updateWaitTimeEstimates();
+        })
+        .catch((error) => {
+          console.error('Error loading patients from Firebase:', error);
+        });
+
+      // Real-time listener for changes from other devices
+      STATE.unsubscribeQueue = STATE.patientsCollection
+        .where('status', '==', 'waiting')
+        .orderBy('createdAt', 'asc')
+        .onSnapshot((snapshot) => {
+          snapshot.docChanges().forEach((change) => {
+            if (change.type === 'added') {
+              const docId = change.doc.id;
+              const existing = document.querySelector(`[data-docid="${docId}"]`);
+              if (!existing) {
+                const data = change.doc.data();
+                // Find next available room number
+                const list = document.getElementById('patient-list');
+                const roomNum = list.children.length + 1;
+                renderPatientToQueueUI(data, data.level, docId, roomNum);
+                STATE.nextRoom = Math.max(STATE.nextRoom, roomNum + 1);
+              }
+            } else if (change.type === 'removed') {
+              const docId = change.doc.id;
+              const existing = document.querySelector(`[data-docid="${docId}"]`);
+              if (existing) {
+                existing.remove();
+                renumberRooms();
+              }
+            } else if (change.type === 'modified') {
+              const docId = change.doc.id;
+              const existing = document.querySelector(`[data-docid="${docId}"]`);
+              if (existing && existing.querySelector('button.discharge-btn') === null) {
+                // Patient was called - remove from UI
+                existing.remove();
+                renumberRooms();
+              }
+            }
+          });
+          updateWaitTimeEstimates();
+        });
+    }
+
     // ==========================================
     // BINDINGS
     // ==========================================
+
     
     // Process triage
     const processBtn = document.getElementById('abstention-btn'); // Will use Enter key
@@ -851,7 +1052,10 @@
     });
     
     // Initialize: show nurse tab first
-    document.querySelector('.tab-btn[data-tab="nurse"]').click();
+    document.querySelector('.tab-btn[data-tab="nurse"]').click()
+
+    // Initialize Firebase queue sync
+    initFirebaseQueue();
     
     // Print button
     document.getElementById('print-btn').addEventListener('click', () => {
