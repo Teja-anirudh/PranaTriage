@@ -3,19 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PranaTriage • OPD CareTrack</title>
+  <title>Prana Priority • The sickest patient is seen first.</title>
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
-  <!-- Firebase SDK (Compat) -->
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght:400,500,600,700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400,500,600,700&display=swap" rel="stylesheet">
   <style>
     :root {
       --red-emergency: #ef4444;
-      --orange-urgent: #f87171;
-      --yellow-caution: #fbbf24;
+      --orange-urgent: #f97316;
+      --yellow-caution: #eab308;
       --green-stable: #22c55e;
       --blue-low: #3b82f6;
       --purple-ambient: #a855f7;
@@ -24,2129 +21,1686 @@
       --text-primary: #1e293b;
       --text-secondary: #64748b;
     }
-
     [data-theme="dark"] {
       --bg-light: #0f172a;
       --bg-card: #1e293b;
       --text-primary: #f8fafc;
       --text-secondary: #94a3b8;
     }
-
-    * {
-      box-sizing: border-box;
-    }
-
+    * { box-sizing: border-box; }
     body {
       font-family: 'Inter', sans-serif;
       background: var(--bg-light);
       color: var(--text-primary);
       transition: background 0.3s, color 0.3s;
     }
-
-    .btn-primary {
-      @apply bg-purple-600 text-white font-medium rounded-lg px-4 py-2.5 hover:bg-purple-700 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-2;
-    }
-
-    .btn-secondary {
-      @apply bg-white text-gray-800 font-medium rounded-lg px-4 py-2.5 hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-2;
-    }
-
-    .card {
-      @apply bg-white rounded-xl shadow-sm p-6 border border-gray-200;
-    }
-
-    [data-theme="dark"] .card {
-      background: var(--bg-card);
-      border-color: #374151;
-    }
-
-    .priority-badge {
-      @apply px-py.5 rounded-full text-xs font-bold;
-    }
-
-    .level-1 { @apply bg-red-100 text-red-800; }
-    .level-2 { @apply bg-orange-100 text-orange-800; }
-    .level-3 { @apply bg-yellow-100 text-yellow-800; }
-    .level-4 { @apply bg-green-100 text-green-800; }
-    .level-5 { @apply bg-blue-100 text-blue-800; }
-
-    .color-card {
-      @apply min-h-64 flex items-center justify-center text-center;
-    }
-
-    .icon-large {
-      font-size: 4rem;
-      line-height: 1;
-    }
-
-    .toast {
-      @apply fixed bottom-4 right-4 px-6 py-3 rounded-lg text-white font-medium shadow-lg z-50 opacity-0 transition-opacity 300ms;
-    }
-
+    .btn-primary { @apply bg-purple-600 text-white font-medium rounded-lg px-4 py-2.5 hover:bg-purple-700 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500; }
+    .btn-secondary { @apply bg-white text-gray-800 font-medium rounded-lg px-4 py-2.5 hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 border border-gray-300; }
+    .btn-success { @apply bg-green-600 text-white font-medium rounded-lg px-4 py-2.5 hover:bg-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-green-500; }
+    .btn-outline { @apply bg-white text-gray-700 font-medium rounded-lg px-4 py-2.5 border border-gray-300 hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500; }
+    .btn-danger { @apply bg-red-600 text-white font-medium rounded-lg px-4 py-2.5 hover:bg-red-700 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500; }
+    .card { @apply bg-white rounded-xl shadow-sm p-6 border border-gray-200; }
+    [data-theme="dark"] .card { background: var(--bg-card); border-color: #374151; }
+    .priority-badge { @apply px-3 py-1 rounded-full text-xs font-bold; }
+    .level-1 { @apply bg-red-100 text-red-800 border border-red-200; }
+    .level-2 { @apply bg-orange-100 text-orange-800 border border-orange-200; }
+    .level-3 { @apply bg-yellow-100 text-yellow-800 border border-yellow-200; }
+    .level-4 { @apply bg-green-100 text-green-800 border border-green-200; }
+    .level-5 { @apply bg-blue-100 text-blue-800 border border-blue-200; }
+    .color-card { @apply min-h-64 flex items-center justify-center text-center rounded-xl border-2; }
+    .toast { @apply fixed bottom-4 right-4 px-6 py-3 rounded-lg text-white font-medium shadow-xl z-50 opacity-0 transition-opacity 300ms; }
     .toast.show { opacity: 1; }
-
-    @keyframes pulse-ring {
-      0% { transform: scale(1); opacity: 0.8; }
-      50% { transform: scale(1.2); opacity: 0; }
-      100% { transform: scale(1.4); opacity: 0; }
-    }
-
-    .pulse-ring {
-      animation: pulse-ring 2s ease-out infinite;
-    }
-
-    .no-alert {
-      all: unset;
-    }
-
-    /* ==========================================
-       SMART INTAKE - FORM COMPONENTS
-       ========================================== */
-    .step-indicator {
-      @apply flex items-center justify-between mb-8 relative;
-    }
-
-    .step-line {
-      @apply absolute top-6 left-0 right-0 h-0.5 bg-gray-200 z-0;
-    }
-
-    [data-theme="dark"] .step-line {
-      @apply bg-gray-700;
-    }
-
-    .step {
-      @apply relative z-10 flex flex-col items-center w-1/5;
-    }
-
-    .step-circle {
-      @apply w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold mx-auto mb-2 border-2 transition-all;
-    }
-
-    .step-circle.active {
-      @apply bg-purple-600 text-white border-purple-600;
-    }
-
-    .step-circle.completed {
-      @apply bg-green-500 text-white border-green-500;
-    }
-
-    .step-circle.pending {
-      @apply bg-gray-100 text-gray-400 border-gray-300;
-    }
-
-    [data-theme="dark"] .step-circle.pending {
-      @apply bg-gray-800 text-gray-500 border-gray-600;
-    }
-
-    .step-label {
-      @apply text-xs font-medium text-gray-500 text-center w-full;
-    }
-
-    .step-content {
-      @apply hidden;
-    }
-
-    .step-content.active {
-      @apply block;
-    }
-
-    .form-group {
-      @apply mb-4;
-    }
-
-    .form-label {
-      @apply block text-sm font-medium text-gray-700 mb-1;
-    }
-
-    [data-theme="dark"] .form-label {
-      @apply text-gray-300;
-    }
-
-    .form-input {
-      @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors;
-    }
-
-    [data-theme="dark"] .form-input {
-      @apply bg-gray-800 border-gray-600 text-white focus:ring-purple-500;
-    }
-
-    .form-select {
-      @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white transition-colors;
-    }
-
-    [data-theme="dark"] .form-select {
-      @apply bg-gray-800 border-gray-600 text-white focus:ring-purple-500;
-    }
-
-    .form-textarea {
-      @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors min-h-[80px];
-    }
-
-    [data-theme="dark"] .form-textarea {
-      @apply bg-gray-800 border-gray-600 text-white focus:ring-purple-500;
-    }
-
-    .required-mark {
-      @apply text-red-500 ml-0.5;
-    }
-
-    .optional-mark {
-      @apply text-gray-400 text-xs ml-1;
-    }
-
-    .error-text {
-      @apply text-red-500 text-sm mt-1 hidden;
-    }
-
-    .error-text.visible {
-      @apply block;
-    }
-
-    .input-error {
-      @apply border-red-500 focus:ring-red-500;
-    }
-
-    .aadhaar-mask-container {
-      @apply relative;
-    }
-
-    .aadhaar-toggle {
-      @apply absolute right-3 top-2 text-xs font-medium text-purple-600 hover:text-purple-700 cursor-pointer;
-    }
-
-    [data-theme="dark"] .aadhaar-toggle {
-      @apply text-purple-400 hover:text-purple-300;
-    }
-
-    .privacy-badge {
-      @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100 mr-2;
-    }
-
-    [data-theme="dark"] .privacy-badge {
-      @apply bg-blue-900/20 text-blue-300 border-blue-800;
-    }
-
-    .ai-disclaimer {
-      @apply bg-amber-50 border border-amber-100 rounded-lg p-3 text-xs text-amber-800 mb-4;
-    }
-
-    [data-theme="dark"] .ai-disclaimer {
-      @apply bg-amber-900/20 border-amber-800 text-amber-300;
-    }
-
-    .review-item {
-      @apply flex justify-between items-center py-2 border-b border-gray-100 last:border-0;
-    }
-
-    [data-theme="dark"] .review-item {
-      @apply border-gray-700;
-    }
-
-    .review-label {
-      @apply text-sm text-gray-500;
-    }
-
-    [data-theme="dark"] .review-label {
-      @apply text-gray-400;
-    }
-
-    .review-value {
-      @apply text-sm font-medium text-gray-700;
-    }
-
-    [data-theme="dark"] .review-value {
-      @apply text-gray-300;
-    }
-
-    .ai-response {
-      @apply bg-gray-50 rounded-lg p-4 mb-4 border border-gray-200;
-    }
-
-    [data-theme="dark"] .ai-response {
-      @apply bg-gray-800 border-gray-700;
-    }
-
-    .ai-response-header {
-      @apply flex items-center gap-2 mb-2;
-    }
-
-    .triage-warning {
-      @apply bg-red-50 border border-red-100 rounded-lg p-4 text-red-800 text-sm;
-    }
-
-    [data-theme="dark"] .triage-warning {
-      @apply bg-red-900/20 border-red-800 text-red-300;
-    }
-
-    .triage-info {
-      @apply bg-blue-50 border border-blue-100 rounded-lg p-4 text-blue-800 text-sm;
-    }
-
-    [data-theme="dark"] .triage-info {
-      @apply bg-blue-900/20 border-blue-800 text-blue-300;
-    }
-
-    .btn-outline {
-      @apply bg-white text-gray-700 font-medium rounded-lg px-4 py-2.5 border border-gray-300 hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500;
-    }
-
-    [data-theme="dark"] .btn-outline {
-      @apply bg-gray-800 text-gray-300 border-gray-600 hover:bg-gray-700;
-    }
-
-    .btn-success {
-      @apply bg-green-600 text-white font-medium rounded-lg px-4 py-2.5 hover:bg-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-green-500;
-    }
-
-    .btn-disabled {
-      @apply opacity-50 cursor-not-allowed;
-    }
-
-    .loading-spinner {
-      @apply inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin;
-    }
-
-    /* Tab for Smart Intake */
-    .tab-pane.intake-pane {
-      @apply max-w-4xl mx-auto;
-    }
-
-    /* Hide existing nurse form when Smart Intake is active - handled by tab switching */
-
-    /* Responsive */
-    @media (max-width: 639px) {
-      .step-label {
-        @apply text-[10px];
-      }
-      .step-circle {
-        @apply w-8 h-8 text-xs;
-      }
-    }
-
-    /* ==========================================
-       DARK MODE COMPONENT OVERRIDES
-       ========================================== */
-    [data-theme="dark"] .btn-secondary {
-      @apply bg-gray-700 text-gray-200 border-gray-600 hover:bg-gray-600;
-    }
-
-    [data-theme="dark"] .tab-btn {
-      @apply bg-gray-800 text-gray-300 border-gray-600 hover:bg-gray-700 hover:text-white;
-    }
-
-    [data-theme="dark"] input,
-    [data-theme="dark"] select {
-      @apply bg-gray-800 text-white border-gray-600 focus:ring-purple-500;
-    }
-
-    [data-theme="dark"] input::placeholder {
-      @apply text-gray-400;
-    }
-
-    [data-theme="dark"] .card {
-      @apply bg-gray-800 border-gray-700;
-    }
-
-    [data-theme="dark"] .color-card {
-      @apply text-white;
-    }
-
-    [data-theme="dark"] .patient-item {
-      @apply bg-gray-800/50 border-gray-700 text-gray-200 hover:bg-gray-700;
-    }
-
-    [data-theme="dark"] .patient-item span:last-child {
-      @apply text-gray-200;
-    }
-
-    [data-theme="dark"] .symptom-chip {
-      @apply bg-gray-800 text-gray-300 border-gray-700 hover:bg-gray-700 hover:text-white;
-    }
-
-    [data-theme="dark"] .toast {
-      @apply text-black;
-    }
-
-    [data-theme="dark"] .toast.bg-purple-600,
-    [data-theme="dark"] .toast.bg-red-600,
-    [data-theme="dark"] .toast.bg-orange-600,
-    [data-theme="dark"] .toast.bg-yellow-600,
-    [data-theme="dark"] .toast.bg-green-600,
-    [data-theme="dark"] .toast.bg-blue-600 {
-      @apply text-white;
-    }
-
-    /* ==========================================
-       PRINT STYLES
-       ========================================== */
+    .no-alert { all: unset; }
+    .input-error { @apply border-red-500 focus:ring-red-500; }
+    .error-text { @apply text-red-500 text-sm mt-1 hidden; }
+    .error-text.visible { @apply block; }
+    .form-group { @apply mb-4; }
+    .form-label { @apply block text-sm font-medium text-gray-700 mb-1; }
+    [data-theme="dark"] .form-label { @apply text-gray-300; }
+    .form-input { @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors; }
+    [data-theme="dark"] .form-input { @apply bg-gray-800 border-gray-600 text-white focus:ring-purple-500; }
+    .form-select { @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white transition-colors; }
+    [data-theme="dark"] .form-select { @apply bg-gray-800 border-gray-600 text-white focus:ring-purple-500; }
+    .form-textarea { @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors min-h-[80px]; }
+    [data-theme="dark"] .form-textarea { @apply bg-gray-800 border-gray-600 text-white focus:ring-purple-500; }
+    .required-mark { @apply text-red-500 ml-0.5; }
+    .optional-mark { @apply text-gray-400 text-xs ml-1; }
+    .voice-btn { @apply rounded-full px-3 py-2 border border-gray-300 bg-white hover:bg-gray-50 transition-colors; }
+    [data-theme="dark"] .voice-btn { @apply bg-gray-800 text-white border-gray-600; }
+    .voice-btn.listening { @apply bg-red-500 text-white border-red-500; }
     @media print {
-      .no-print,
-      #theme-toggle,
-      .tab-btn,
-      .btn-primary,
-      #abstention-btn,
-      #call-next-btn,
-      #print-btn,
-      .toast,
-      .tab-pane.hidden {
-        display: none !important;
-      }
-
-      body {
-        background: #ffffff !important;
-        color: #000000 !important;
-      }
-
-      .card {
-        border: 1px solid #000000 !important;
-        box-shadow: none !important;
-        background: #ffffff !important;
-      }
-
-      .color-card {
-        border: 2px solid #000000 !important;
-        background: #ffffff !important;
-        color: #000000 !important;
-        page-break-inside: avoid;
-      }
-
-      #patient-list .patient-item {
-        break-inside: avoid;
-        border: 1px solid #000000 !important;
-        margin-bottom: 12px;
-        padding: 10px;
-        background: #ffffff !important;
-        color: #000000 !important;
-      }
-
-      #patient-list .patient-item span:last-child {
-        color: #000000 !important;
-      }
-
-      .level-1 { background: #fecaca !important; color: #991b1b !important; }
-      .level-2 { background: #fdba74 !important; color: #9c4221 !important; }
-      .level-3 { background: #fef3c7 !important; color: #713f12 !important; }
-      .level-4 { background: #dcfce7 !important; color: #14532d !important; }
-      .level-5 { background: #dbeafe !important; color: #1e40af !important; }
-
-      h1, h2, h3, h4, p, span, div {
-        color: #000000 !important;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-      }
+      .no-print, .tab-btn, .btn-primary, .btn-secondary, .toast, .theme-toggle, .voice-btn { display: none !important; }
+      body { background: #ffffff !important; color: #000000 !important; }
+      .card { border: 1px solid #000000 !important; box-shadow: none !important; background: #ffffff !important; }
+    }
+    @media (max-width: 639px) {
+      .btn-primary, .btn-secondary, .btn-success, .btn-outline, .btn-danger { @apply px-3 py-2.5 text-sm; }
     }
   </style>
 </head>
-<body class="min-h-screen p-4">
+<body class="min-h-screen p-4 sm:p-6">
 
-  <!-- Header -->
-  <header class="mb-8 text-center">
-    <h1 class="text-3xl font-bold tracking-tight">PranaTriage • OPD CareTrack</h1>
-    <p class="text-sm text-gray-600 mt-1">Outpatient Triage & Priority Queue System</p>
-  <button id="theme-toggle" class="px-3 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors border border-gray-300" title="Toggle dark mode">🌓</button>
-  <span id="firebase-status" class="px-3 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-600 border border-gray-300">● Firebase: Connecting</span>
-  </header>
-
-  <!-- Tabs Navigation -->
-  <div class="mb-6 flex gap-2">
-    <button class="tab-btn px-6 py-3 rounded-lg font-medium text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 transition-all" data-tab="nurse">Nurse Intake Desk</button>
-    <button class="tab-btn px-6 py-3 rounded-lg font-medium text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 transition-all" data-tab="queue">Doctor Queue</button>
-    <button class="tab-btn px-6 py-3 rounded-lg font-medium text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 transition-all" data-tab="analytics">Wait-Time Analytics</button>
-    <button class="tab-btn px-6 py-3 rounded-lg font-medium text-gray-600 bg-white border border-purple-200 hover:bg-purple-50 text-purple-700 border-purple-300 transition-all" data-tab="smart-intake">Smart Patient Intake</button>
+<!-- Header -->
+<header class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+  <div>
+    <h1 class="text-2xl font-bold tracking-tight">Prana Priority</h1>
+    <p class="text-sm text-gray-600 mt-1">The sickest patient is seen first.</p>
   </div>
+  <div class="flex items-center gap-3">
+    <button id="theme-toggle" class="btn-outline px-3 py-2 text-sm" title="Toggle dark mode">🌓</button>
+    <button id="lang-toggle" class="btn-outline px-3 py-2 text-sm" title="Toggle English/Telugu">EN/TE</button>
+    <span id="mode-badge" class="px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-600 border border-gray-300">Standalone</span>
+  </div>
+</header>
 
-  <!-- Main Content Area -->
-  <main class="min-h-[400px]">
-    <!-- Nurse Intake Tab -->
-    <section id="tab-nurse" class="tab-pane hidden">
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-5xl mx-auto">
-        
-        <!-- Patient Info Column -->
-        <div>
-          <h2 class="text-xl font-semibold mb-4">Patient Information</h2>
-          <div class="space-y-4">
-            
-            <!-- Age & Gender -->
-            <div>
-              <label class="block text-sm font-medium mb-2">Age (years)</label>
-              <input id="age-input" type="number" min="0" max="120" class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500">
-            </div>
-            
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="block text-sm font-medium mb-2">Gender</label>
-                <select id="gender-select" class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500">
-                  <option value="">Select gender</option>
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                  <option value="Other">Other</option>
-                </select>
-              </div>
-              <div>
-                <label class="block text-sm font-medium mb-2">Language</label>
-                <select id="language-select" class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500">
-                  <option value="en">English</option>
-                  <option value="telugu">Telugu</option>
-                  <option value="hindi">Hindi</option>
-                </select>
-              </div>
-            </div>
+<!-- Counters -->
+<div class="mb-6 flex gap-4 no-print">
+  <div class="card px-4 py-3">
+    <div class="text-xs text-gray-500 uppercase">Waiting</div>
+    <div id="counter-waiting" class="text-xl font-bold text-purple-600">0</div>
+  </div>
+  <div class="card px-4 py-3">
+    <div class="text-xs text-gray-500 uppercase">Emergencies (Level 1)</div>
+    <div id="counter-emergencies" class="text-xl font-bold text-red-600">0</div>
+  </div>
+</div>
 
-            <!-- Vitals Section -->
-            <h3 class="text-sm font-medium text-gray-500 mb-3">Vitals</h3>
-            <div class="grid grid-cols-2 gap-3">
-              
-              <div>
-                <label class="block text-sm font-medium mb-2">SpO2 (%)</label>
-                <input id="spo2-input" type="number" min="0" max="100" class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="e.g., 97">
-              </div>
-              
-              <div>
-                <label class="block text-sm font-medium mb-2">Pulse (BPM)</label>
-                <input id="pulse-input" type="number" min="0" max=300 class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="e.g., 82">
-              </div>
-              
-              <div>
-                <label class="block text-sm font-medium mb-2">BP Systolic</label>
-                <input id="bs-input" type="number" min="0" max=300 class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="e.g., 120">
-              </div>
-              
-              <div>
-                <label class="block text-sm font-medium mb-2">BP Diastolic</label>
-                <input id="bd-input" type="number" min="0" max=200 class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="e.g., 80">
-              </div>
-              
-            </div>
+<!-- Tabs Navigation -->
+<div class="mb-6 flex gap-1 overflow-x-auto scrollbar-hide sm:scrollbar-auto no-print">
+  <button class="tab-btn px-5 py-3 rounded-lg font-medium text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 transition-all active-tab" data-tab="triage">Triage</button>
+  <button class="tab-btn px-5 py-3 rounded-lg font-medium text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 transition-all" data-tab="queue">Queue</button>
+  <button class="tab-btn px-5 py-3 rounded-lg font-medium text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 transition-all" data-tab="results">Results</button>
+</div>
 
-            <div>
-              <label class="block text-sm font-medium mb-2">Temperature (°F)</label>
-              <input id="temp-f-input" type="number" min="80" max=120 class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="e.g., 98.6">
-              <small class="text-xs text-gray-500 block mt-1">Auto-converted to °C if > 80°F</small>
-            </div>
+<!-- Disclaimer -->
+<div class="disclaimer-banner mb-6">
+  <strong>Decision support only.</strong> Nurse can override. Not a diagnosis. Not clinically validated.
+</div>
 
-          </div>
-        </div>
+<!-- Tab Panels Container -->
+<main class="space-y-6">
 
-        <!-- Symptoms & Result Column -->
-        <div>
-          <h2 class="text-xl font-semibold mb-4">Symptom Chips</h2>
-          <div class="space-y-2">
-            
-            <!-- English chips -->
-            <p class="text-xs text-gray-500 mb-2">English</p>
-            <div class="grid grid-cols-2 gap-1.5">
-              <button class="symptom-chip px-3 py-1.5 rounded text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors" data-symptom="chest_pain">Chest pain</button>
-              <button class="symptom-chip px-3 py-1.5 rounded text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors" data-symptom="shortness_of_breath">Shortness of breath</button>
-              <button class="symptom-chip px-3 py-1.5 rounded text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors" data-symptom="palpitations">Palpitations</button>
-              <button class="symptom-chip px-3 py-1.5 rounded text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors" data-symptom="dizziness">Dizziness</button>
-            </div>
-
-            <!-- Telugu chips -->
-            <p class="text-xs text-gray-500 mb-2 mt-4">తెలుగు (Telugu)</p>
-            <div class="grid grid-cols-2 gap-1.5">
-              <button class="symptom-chip px-3 py-1.5 rounded text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors" data-symptom="gundelo_noppi">గుండెలో నొప్పి</button>
-              <button class="symptom-chip px-3 py-1.5 rounded text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors" data-symptom="aayasam">ఆయాసం</button>
-              <button class="symptom-chip px-3 py-1.5 rounded text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors" data-symptom="pakshavatham">పక్షవాతం</button>
-              <button class="symptom-chip px-3 py-1.5 rounded text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors" data-symptom="jalubu">జలుబు</button>
-            </div>
-
-            <!-- Hindi chips -->
-            <p class="text-xs text-gray-500 mb-2 mt-4">हिंदी (Hindi)</p>
-            <div class="grid grid-cols-2 gap-1.5">
-              <button class="symptom-chip px-3 py-1.5 rounded text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors" data-symptom="chhati_me_dard">छाती में दर्द</button>
-              <button class="symptom-chip px-3 py-1.5 rounded text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors" data-symptom="saas_lene_takleef">सांस लेने में तकलीफ</button>
-              <button class="symptom-chip px-3 py-1.5 rounded text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors" data-symptom="chakkar">चक्कर</button>
-              <button class="symptom-chip px-3 py-1.5 rounded text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors" data-symptom="best_of_blood">बुखार</button>
-            </div>
-
-            <!-- Abstention -->
-            <div class="mt-6 p-4 rounded-lg border border-purple-500/40 bg-purple-50/50">
-              <button id="abstention-btn" class="w-full py-3 rounded-lg font-medium text-purple-700 bg-purple-100 hover:bg-purple-200 transition-colors">
-                Send to Nurse (Abstention)
-              </button>
-            </div>
-
-            <!-- Result / Color Card -->
-            <div class="mt-6 pt-6 border-t border-gray-200">
-              <h2 class="text-xl font-semibold mb-3">Triage Result</h2>
-              <div id="result-card" class="color-card hidden">
-                <div id="result-icon" class="icon-large mb-4"></div>
-                <div id="result-level" class="text-3xl font-bold mb-2"></div>
-                <div id="result-text"></div>
-                <div id="result-room"></div>
-                <button id="print-btn" class="mt-4 btn-primary w-full">Print Token</button>
-              </div>
-            </div>
-
-          </div>
-        </div>
-
-      </div>
-    </section>
-
-    <!-- Doctor Queue Tab -->
-    <section id="tab-queue" class="tab-pane hidden">
-      <div class="max-w-4xl mx-auto">
-        <div class="mb-4 flex justify-between items-center">
-          <h2 class="text-xl font-semibold">Priority Queue</h2>
-          <button id="call-next-btn" class="btn-primary px-6 py-2.5 font-medium">Call Next Patient</button>
-        </div>
-        
-        <!-- Search / Filter -->
-        <div class="relative mb-4">
-          <input id="queue-search" type="text" placeholder="Search patients by age, gender, language..." class="w-full rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500">
-        </div>
-
-        <!-- Wait-time Estimates -->
-        <div id="wait-time-estimates" class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
-          <div class="p-2 rounded-lg bg-gray-50 text-center border border-gray-200">
-            <div class="text-xs text-gray-500">Level 1</div>
-            <div class="text-sm font-bold text-red-600" id="wait-level-1">&lt;2 min</div>
-          </div>
-          <div class="p-2 rounded-lg bg-gray-50 text-center border border-gray-200">
-            <div class="text-xs text-gray-500">Level 2</div>
-            <div class="text-sm font-bold text-orange-600" id="wait-level-2">&lt;10 min</div>
-          </div>
-          <div class="p-2 rounded-lg bg-gray-50 text-center border border-gray-200">
-            <div class="text-xs text-gray-500">Level 3</div>
-            <div class="text-sm font-bold text-yellow-600" id="wait-level-3">&lt;20 min</div>
-          </div>
-          <div class="p-2 rounded-lg bg-gray-50 text-center border border-gray-200">
-            <div class="text-xs text-gray-500">Level 4</div>
-            <div class="text-sm font-bold text-green-600" id="wait-level-4">&lt;30 min</div>
-          </div>
-          <div class="p-2 rounded-lg bg-gray-50 text-center border border-gray-200">
-            <div class="text-xs text-gray-500">Level 5</div>
-            <div class="text-sm font-bold text-blue-600" id="wait-level-5">&lt;45 min</div>
-          </div>
-        </div>
-        <p class="text-sm text-gray-500 mb-4" id="queue-status">Waiting for patients...</p>
-        
-        <div id="patient-list" class="space-y-3 max-h-80 overflow-y-auto">
-          <!-- Patients rendered here -->
-        </div>
-
-        <div id="empty-state" class="text-center py-8 hidden">
-          <p class="text-gray-400">No patients in queue</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- Smart Patient Intake Tab -->
-    <section id="tab-smart-intake" class="tab-pane hidden intake-pane">
-      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-        <h2 class="text-2xl font-bold text-gray-800 mb-2">Smart Patient Intake & Multilingual AI Assistance</h2>
-        <p class="text-gray-600 text-sm mb-4">Complete patient registration, symptom assessment, and triage. All sensitive identifiers are protected per privacy policy.</p>
-      </div>
-
-      <!-- Step Indicator -->
-      <div class="step-indicator mb-6">
-        <div class="step-line"></div>
-        <div class="step">
-          <div class="step-circle" id="step-circle-1">1</div>
-          <div class="step-label">Registration</div>
-        </div>
-        <div class="step">
-          <div class="step-circle" id="step-circle-2">2</div>
-          <div class="step-label">Symptoms & History</div>
-        </div>
-        <div class="step">
-          <div class="step-circle" id="step-circle-3">3</div>
-          <div class="step-label">Vital Signs</div>
-        </div>
-        <div class="step">
-          <div class="step-circle" id="step-circle-4">4</div>
-          <div class="step-label">Review & Submit</div>
-        </div>
-        <div class="step">
-          <div class="step-circle" id="step-circle-5">5</div>
-          <div class="step-label">Triage & Queue</div>
-        </div>
-      </div>
-
-      <!-- Step 1: Patient Registration -->
-      <div id="step-1" class="step-content active">
-        <form id="intake-form-step1" novalidate>
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+<!-- Tab 1: Triage (Nurse) -->
+<section id="tab-triage" class="tab-pane hidden">
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Intake Form -->
+    <div class="lg:col-span-2 space-y-6">
+      <div class="card">
+        <h2 class="text-lg font-semibold mb-4" id="h-patient-reg">Patient Registration & Triage</h2>
+        <form id="intake-form" novalidate class="space-y-5">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="form-group">
-              <label class="form-label">Patient Full Name <span class="required-mark">*</span></label>
-              <input type="text" id="reg-patient-name" class="form-input" placeholder="Enter full name" maxlength="100">
-              <span class="error-text" id="err-reg-patient-name">Full name is required.</span>
+              <label class="form-label" id="lbl-name">Patient Name <span class="required-mark">*</span></label>
+              <input type="text" id="reg-name" class="form-input" placeholder="Full name" maxlength="100" oninput="escapeHtml(this)">
+              <span class="error-text" id="err-reg-name">Name is required.</span>
             </div>
-
             <div class="form-group">
-              <label class="form-label">Aadhaar Number <span class="optional-mark">(optional)</span></label>
-              <div class="aadhaar-mask-container">
-                <input type="text" id="reg-aadhaar" class="form-input" placeholder="12-digit Aadhaar (optional)" maxlength="14" autocomplete="off">
-                <span class="aadhaar-toggle" id="aadhaar-toggle" title="Show/hide Aadhaar">👁️</span>
-              </div>
-              <span class="error-text" id="err-reg-aadhaar">Aadhaar must be exactly 12 digits.</span>
-              <p class="text-xs text-gray-500 mt-1">Optional. Masked by default. Shown only to authorized staff.</p>
+              <label class="form-label" id="lbl-age">Age <span class="required-mark">*</span></label>
+              <input type="number" id="reg-age" class="form-input" min="0" max="120" placeholder="Age" oninput="escapeHtml(this)">
+              <span class="error-text" id="err-reg-age">Valid age required (0-120).</span>
             </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" id="lbl-gender">Gender <span class="required-mark">*</span></label>
+            <select id="reg-gender" class="form-select" oninput="escapeHtml(this)">
+              <option value="">Select</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
+            </select>
+            <span class="error-text" id="err-reg-gender">Gender is required.</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label" id="lbl-complaint">Chief Complaint <span class="required-mark">*</span></label>
+            <textarea id="reg-complaint" class="form-textarea" placeholder="Describe symptoms (English, Telugu, Hindi, Hinglish)..." oninput="escapeHtml(this)"></textarea>
+            <span class="error-text" id="err-reg-complaint">Chief complaint is required.</span>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="form-group">
+              <label class="form-label" id="lbl-temp">Temperature (°C) <span class="optional-mark">(optional)</span></label>
+              <input type="number" id="reg-temp" class="form-input" step="0.1" min="30" max="45" placeholder="e.g. 37.0 or 99F" oninput="escapeHtml(this)">
+              <span class="error-text" id="err-reg-temp">Invalid temperature.</span>
+            </div>
+            <div class="form-group">
+              <label class="form-label" id="lbl-spo2">SpO2 (%) <span class="optional-mark">(optional)</span></label>
+              <input type="number" id="reg-spo2" class="form-input" min="50" max="100" placeholder="e.g. 97" oninput="escapeHtml(this)">
+              <span class="error-text" id="err-reg-spo2">Invalid SpO2 (50-100).</span>
+            </div>
+            <div class="form-group">
+              <label class="form-label" id="lbl-pulse">Pulse (BPM) <span class="optional-mark">(optional)</span></label>
+              <input type="number" id="reg-pulse" class="form-input" min="20" max="250" placeholder="e.g. 82" oninput="escapeHtml(this)">
+              <span class="error-text" id="err-reg-pulse">Invalid pulse (20-250).</span>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="form-group">
+              <label class="form-label" id="lbl-sbp">SBP (mmHg) <span class="optional-mark">(optional)</span></label>
+              <input type="number" id="reg-sbp" class="form-input" min="50" max="300" placeholder="e.g. 120" oninput="escapeHtml(this)">
+              <span class="error-text" id="err-reg-sbp">Invalid SBP.</span>
+            </div>
+            <div class="form-group">
+              <label class="form-label" id="lbl-dbpc">DBP (mmHg) <span class="optional-mark">(optional)</span></label>
+              <input type="number" id="reg-dbpc" class="form-input" min="30" max="200" placeholder="e.g. 80" oninput="escapeHtml(this)">
+              <span class="error-text" id="err-reg-dbpc">Invalid DBP.</span>
+            </div>
+          </div>
+          <div class="ai-disclaimer">
+            <strong>🤖 Language Assistance:</strong>
+            <button type="button" id="voice-input-btn" class="voice-btn ml-2" title="Voice input">🎤 Speak</button>
+            <button type="button" id="ai-normalize-btn" class="btn-outline px-3 py-1.5 text-sm ml-2">Normalize Text</button>
+            <button type="button" id="ai-clarify-btn" class="btn-outline px-3 py-1.5 text-sm ml-2">Clarify Questions</button>
+          </div>
+          <div id="ai-response-area" class="ai-response hidden">
+            <div id="ai-response-content" class="text-sm text-gray-700"></div>
+          </div>
+          <div class="pt-4 border-t border-gray-200 flex justify-end gap-2">
+            <button type="button" id="triage-btn" class="btn-primary px-8 py-3">Run triage</button>
           </div>
         </form>
       </div>
 
-      <div id="smart-intake-placeholder" class="hidden">Smart intake form continues below</div>
-
-      <!-- Step 2: Symptoms & Medical History -->
-      <div id="step-2" class="step-content">
-        <form id="intake-form-step2" novalidate>
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div class="form-group lg:col-span-2">
-              <label class="form-label">Chief Complaint <span class="required-mark">*</span></label>
-              <textarea id="reg-chief-complaint" class="form-textarea" placeholder="Describe the patient's main symptoms in English, Telugu, or Hindi..."></textarea>
-              <span class="error-text" id="err-reg-chief-complaint">Chief complaint is required.</span>
-              <p class="text-xs text-gray-500 mt-1">Minimum necessary clinical text is sent to language assistance. No identifiers are included.</p>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Duration of Symptoms <span class="required-mark">*</span></label>
-              <select id="reg-symptom-duration" class="form-select">
-                <option value="">Select duration</option>
-                <option value="Less than 24 hours">Less than 24 hours</option>
-                <option value="1-3 days">1-3 days</option>
-                <option value="4-7 days">4-7 days</option>
-                <option value="1-2 weeks">1-2 weeks</option>
-                <option value="More than 2 weeks">More than 2 weeks</option>
-                <option value="Chronic/ongoing">Chronic/ongoing</option>
-              </select>
-              <span class="error-text" id="err-reg-symptom-duration">Duration is required.</span>
-            </div>
+      <!-- Triage Result -->
+      <div id="triage-result" class="hidden card">
+        <h2 class="text-lg font-semibold mb-4">Triage Assessment Result</h2>
+        <div id="triage-decision-display" class="mb-4"></div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div class="bg-gray-50 p-3 rounded border border-gray-100">
+            <div class="text-xs text-gray-500 uppercase mb-1">Level</div>
+            <div id="disp-level" class="text-xl font-bold"></div>
           </div>
-          <div class="flex justify-between mt-8 pt-6 border-t border-gray-200">
-            <button type="button" id="step2-prev" class="btn-outline px-6 py-2.5">← Back</button>
-            <button type="button" id="step2-next" class="btn-primary px-6 py-2.5">Next: Vital Signs →</button>
+          <div class="bg-gray-50 p-3 rounded border border-gray-100">
+            <div class="text-xs text-gray-500 uppercase mb-1">Department</div>
+            <div id="disp-dept" class="text-base font-medium"></div>
           </div>
-
-      <!-- Step 3: Vital Signs -->
-      <div id="step-3" class="step-content">
-        <form id="intake-form-step3" novalidate>
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div class="form-group">
-              <label class="form-label">Blood Pressure Systolic (mmHg) <span class="optional-mark">(optional)</span></label>
-              <input type="number" id="reg-bp-systolic" class="form-input" min="50" max="300" placeholder="e.g., 120">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Blood Pressure Diastolic (mmHg) <span class="optional-mark">(optional)</span></label>
-              <input type="number" id="reg-bp-diastolic" class="form-input" min="30" max="200" placeholder="e.g., 80">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Pulse Rate (BPM) <span class="optional-mark">(optional)</span></label>
-              <input type="number" id="reg-pulse" class="form-input" min="30" max="220" placeholder="e.g., 82">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Respiratory Rate (/min) <span class="optional-mark">(optional)</span></label>
-              <input type="number" id="reg-resp-rate" class="form-input" min="5" max="60" placeholder="e.g., 16">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Temperature (°C) <span class="optional-mark">(optional)</span></label>
-              <input type="number" id="reg-temp-c" class="form-input" min="30" max="45" step="0.1" placeholder="e.g., 37.0">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Oxygen Saturation (%) <span class="optional-mark">(optional)</span></label>
-              <input type="number" id="reg-spo2" class="form-input" min="50" max="100" placeholder="e.g., 97">
-            </div>
+          <div class="bg-gray-50 p-3 rounded border border-gray-100">
+            <div class="text-xs text-gray-500 uppercase mb-1">Room</div>
+            <div id="disp-room" class="text-base font-medium"></div>
           </div>
-          <div class="ai-disclaimer mt-6">
-            <strong>⚠️ Important:</strong> Vital signs are optional for registration. If unavailable, triage will proceed based on clinical presentation. Vital signs do not replace professional clinical assessment.
-          </div>
-          <div class="flex justify-between mt-8 pt-6 border-t border-gray-200">
-            <button type="button" id="step3-prev" class="btn-outline px-6 py-2.5">← Back</button>
-            <button type="button" id="step3-next" class="btn-primary px-6 py-2.5">Next: Review & Submit →</button>
-          </div>
-        </form>
-      </div>
-
-      <!-- Step 4: Review & Submit -->
-      <div id="step-4" class="step-content">
-        <div class="bg-gray-50 rounded-lg p-4 mb-6 border border-gray-100">
-          <h3 class="text-sm font-bold text-gray-700 uppercase mb-3">Patient Registration Summary</h3>
-          <div id="review-summary" class="space-y-2">
-            <!-- Populated by JavaScript -->
+          <div class="bg-gray-50 p-3 rounded border border-gray-100">
+            <div class="text-xs text-gray-500 uppercase mb-1">Confidence</div>
+            <div id="disp-confidence" class="text-base font-medium"></div>
           </div>
         </div>
-
-        <div class="bg-blue-50 border border-blue-100 rounded-lg p-4 mb-6">
-          <h3 class="text-sm font-bold text-blue-800 uppercase mb-3">Privacy Notice</h3>
-          <ul class="text-sm text-blue-700 space-y-1 list-disc list-inside">
-            <li>Aadhaar is optional and masked by default (last 4 digits only).</li>
-            <li>Phone number is optional and not shown in routine queue displays.</li>
-            <li>No identifiers (name, Aadhaar, phone) are sent to AI language assistance.</li>
-            <li>Only minimum clinical complaint text is used for language normalization.</li>
-            <li>Use synthetic data for demonstrations.</li>
-          </ul>
-        </div>
-
-        <div class="flex justify-between mt-8 pt-6 border-t border-gray-200">
-          <button type="button" id="step4-prev" class="btn-outline px-6 py-2.5">← Back</button>
-          <button type="button" id="step4-submit" class="btn-success px-6 py-2.5">Complete Registration & Triage</button>
+        <div id="disp-flags" class="mb-4"></div>
+        <div id="disp-reason" class="mb-4 p-3 bg-blue-50 border border-blue-100 rounded text-sm text-blue-800"></div>
+        <div id="disp-missing" class="mb-4 text-sm text-gray-600"></div>
+        <div class="pt-4 border-t border-gray-200 flex gap-2">
+          <button type="button" id="add-to-queue-btn" class="btn-success px-6 py-2.5">Add to Queue</button>
+          <button type="button" id="abstain-nurse-btn" class="btn-outline px-6 py-2.5">Send to Nurse STAT Desk</button>
+          <button type="button" id="override-btn" class="btn-danger px-6 py-2.5">Override</button>
         </div>
       </div>
+    </div>
 
-      <!-- Step 5: Triage & Queue -->
-      <div id="step-5" class="step-content">
-        <div id="triage-result" class="hidden">
-          <div class="text-center mb-6">
-            <div class="text-4xl mb-2" id="triage-icon">🏥</div>
-            <h2 class="text-2xl font-bold text-gray-800 mb-2">Triage Assessment Complete</h2>
-            <p class="text-gray-600 mb-4">Patient has been registered and added to the priority queue.</p>
-          </div>
-
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="card p-4">
-              <h3 class="text-sm font-bold text-gray-500 uppercase mb-3">Patient Details</h3>
-              <div class="space-y-2 text-sm">
-                <div class="flex justify-between"><span class="text-gray-500">Registration ID:</span> <span class="font-medium" id="triage-reg-id">-</span></div>
-                <div class="flex justify-between"><span class="text-gray-500">Name:</span> <span class="font-medium" id="triage-name">-</span></div>
-                <div class="flex justify-between"><span class="text-gray-500">Age / Gender:</span> <span class="font-medium" id="triage-age-gender">-</span></div>
-                <div class="flex justify-between"><span class="text-gray-500">Registered At:</span> <span class="font-medium" id="triage-time">-</span></div>
-              </div>
-            </div>
-
-            <div class="card p-4">
-              <h3 class="text-sm font-bold text-gray-500 uppercase mb-3">Triage Assessment</h3>
-              <div class="flex items-center gap-3 mb-3">
-                <span class="text-sm font-bold text-gray-500">Priority Level:</span>
-                <span id="triage-level-badge" class="px-3 py-1 rounded-full text-xs font-bold">Level 3</span>
-              </div>
-              <div class="flex items-center gap-3 mb-3">
-                <span class="text-sm font-bold text-gray-500">Department:</span>
-                <span class="font-medium" id="triage-department">-</span>
-              </div>
-              <div class="flex items-center gap-3 mb-3">
-                <span class="text-sm font-bold text-gray-500">Queue Status:</span>
-                <span class="font-medium text-green-600">Waiting</span>
-              </div>
-            </div>
-
-            <div class="lg:col-span-2 card p-4">
-              <h3 class="text-sm font-bold text-gray-500 uppercase mb-3">Assessment Details</h3>
-              <div class="space-y-3 text-sm">
-                <div class="flex justify-between"><span class="text-gray-500">Warning Signs:</span> <span id="triage-warning-signs" class="font-medium text-red-600">None identified</span></div>
-                <div class="flex justify-between"><span class="text-gray-500">Triggering Factors:</span> <span id="triage-triggering-factors" class="font-medium">-</span></div>
-                <div class="flex justify-between"><span class="text-gray-500">Missing Information:</span> <span id="triage-missing-info" class="font-medium">-</span></div>
-                <div class="flex justify-between"><span class="text-gray-500">Recommendation:</span> <span id="triage-recommendation" class="font-medium text-blue-600">Qualified staff review required</span></div>
-              </div>
-            </div>
-          </div>
-
-          <div class="mt-6 flex justify-between">
-            <button type="button" id="step5-new-patient" class="btn-primary px-6 py-2.5">Register Another Patient</button>
-            <button type="button" id="step5-view-queue" class="btn-outline px-6 py-2.5">View Doctor Queue</button>
-          </div>
-        </div>
-
-        <div id="triage-error" class="hidden bg-red-50 border border-red-100 rounded-lg p-4 text-red-800 text-sm mb-6">
-          <h3 class="font-bold mb-2">Submission Error</h3>
-          <p id="triage-error-message"></p>
-          <button type="button" id="triage-retry" class="btn-outline px-4 py-1.5 text-sm mt-2">Retry</button>
+    <!-- Presets / Quick Fill -->
+    <div class="lg:col-span-1 space-y-4">
+      <div class="card">
+        <h3 class="text-sm font-semibold mb-3">Quick Presets</h3>
+        <div class="space-y-2">
+          <button class="preset-btn w-full text-left px-3 py-2 bg-gray-50 border border-gray-200 rounded hover:bg-gray-100 text-sm" data-preset="stemi">STEMI: Chest pain, age 58, sweating</button>
+          <button class="preset-btn w-full text-left px-3 py-2 bg-gray-50 border border-gray-200 rounded hover:bg-gray-100 text-sm" data-preset="stroke">Stroke (Telugu hemiplegia), SBP 195</button>
+          <button class="preset-btn w-full text-left px-3 py-2 bg-gray-50 border border-gray-200 rounded hover:bg-gray-100 text-sm" data-preset="vague">Vague complaint, no vitals</button>
+          <button class="preset-btn w-full text-left px-3 py-2 bg-gray-50 border border-gray-200 rounded hover:bg-gray-100 text-sm" data-preset="ankle">Ankle pain, age 32</button>
+          <button class="preset-btn w-full text-left px-3 py-2 bg-gray-50 border border-gray-200 rounded hover:bg-gray-100 text-sm" data-preset="cold">Mild cold, temp 99F</button>
+          <button class="preset-btn w-full text-left px-3 py-2 bg-gray-50 border border-gray-200 rounded hover:bg-gray-100 text-sm" data-preset="fever">High fever, temp 104F</button>
+          <button class="preset-btn w-full text-left px-3 py-2 bg-gray-50 border border-gray-200 rounded hover:bg-gray-100 text-sm" data-preset="spo2">SpO2 84, dyspnea</button>
+          <button class="preset-btn w-full text-left px-3 py-2 bg-gray-50 border border-gray-200 rounded hover:bg-gray-100 text-sm" data-preset="xss">XSS test complaint</button>
         </div>
       </div>
-    </section>
+    </div>
+  </div>
+</section>
 
-        
-        <!-- FCFS vs Priority Comparison -->
-        <div class="card p-6">
-          <h2 class="text-xl font-semibold mb-4">Wait Time Comparison</h2>
-          
-          <div class="grid grid-cols-2 gap-4 mb-6">
-            <div>
-              <div class="text-3xl font-bold text-red-600">34.2 min</div>
-              <div class="text-sm text-gray-500">FCFS (First-Come First-Served)</div>
-            </div>
-            <div>
-              <div class="text-3xl font-bold text-green-600">1.8 min</div>
-              <div class="text-sm text-gray-500">Priority Queue</div>
-            </div>
-          </div>
-          
-          <div class="h-64 rounded-lg bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
-            <div class="text-center">
-              <p class="text-gray-400 mb-2">[Chart placeholder]</p>
-              <p class="text-gray-500">Comparative wait time visualization</p>
-            </div>
-          </div>
-          
-          <p class="text-sm text-gray-500 mt-4">Emergency patients (Level 1) reduce wait from <strong>34.2 minutes</strong> to under <strong>2 minutes</strong> with priority triage.</p>
-        </div>
+<!-- Tab 2: Queue (Doctor) -->
+<section id="tab-queue" class="tab-pane hidden">
+  <div class="card">
+    <h2 class="text-lg font-semibold mb-4">Queue (Doctor)</h2>
+    <div class="flex gap-4 mb-4 text-sm font-medium">
+      <span>Waiting: <span id="counter-queue" class="font-bold text-purple-600">0</span></span>
+      <span>Emergencies: <span id="counter-emergency" class="font-bold text-red-600">0</span></span>
+    </div>
+    <div id="queue-list" class="space-y-2 max-h-[600px] overflow-y-auto">
+      <div class="text-center text-gray-500 text-sm py-8">No patients in queue</div>
+    </div>
+  </div>
+</section>
 
-        <!-- Priority Level Legend -->
-        <div class="card p-6">
-          <h2 class="text-xl font-semibold mb-4">Priority Level Reference</h2>
-          <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
-            <div class="p-3 rounded-lg bg-red-100 text-red-800 text-center border border-red-200">
-              <div class="text-xs font-bold uppercase">Level 1</div>
-              <div class="text-sm font-bold">Red / Emergency</div>
-              <div class="text-xs text-red-600 mt-1">Casualty</div>
-            </div>
-            <div class="p-3 rounded-lg bg-orange-100 text-orange-800 text-center border border-orange-200">
-              <div class="text-xs font-bold uppercase">Level 2</div>
-              <div class="text-sm font-bold">Orange / Urgent</div>
-              <div class="text-xs text-orange-600 mt-1">Cardiology / Neuro</div>
-            </div>
-            <div class="p-3 rounded-lg bg-yellow-100 text-yellow-800 text-center border border-yellow-200">
-              <div class="text-xs font-bold uppercase">Level 3</div>
-              <div class="text-sm font-bold">Yellow / Semi-urgent</div>
-              <div class="text-xs text-yellow-600 mt-1">General Ward</div>
-            </div>
-            <div class="p-3 rounded-lg bg-green-100 text-green-800 text-center border border-green-200">
-              <div class="text-xs font-bold uppercase">Level 4</div>
-              <div class="text-sm font-bold">Green / Non-urgent</div>
-              <div class="text-xs text-green-600 mt-1">OPD</div>
-            </div>
-            <div class="p-3 rounded-lg bg-blue-100 text-blue-800 text-center border border-blue-200">
-              <div class="text-xs font-bold uppercase">Level 5</div>
-              <div class="text-sm font-bold">Blue / Stable</div>
-              <div class="text-xs text-blue-600 mt-1">Follow-up</div>
-            </div>
-          </div>
-          <p class="text-xs text-gray-500 mt-3">Under-triaging a true emergency is penalized 20× more than over-triaging a mild case.</p>
-        </div>
-        <!-- Cost & Safety Metrics -->
-        <div class="card p-6">
-          <h2 class="text-xl font-semibold mb-4">Clinical Safety Metrics</h2>
-          
-          <div class="grid grid-cols-2 gap-4 mb-6">
-            <div>
-              <div class="text-3xl font-bold text-red-600">20×</div>
-              <div class="text-sm text-gray-500">Asymmetric cost: Under-triage penalty</div>
-            </div>
-            <div>
-              <div class="text-3xl font-bold text-green-600">98%+</div>
-              <div class="text-sm text-gray-500">Sensitivity target for true emergencies</div>
-            </div>
-          </div>
-          
-          <div class="space-y-4">
-            <div>
-              <p class="text-sm text-gray-500 mb-2">Mean Asymmetric Loss</p>
-              <div class="h-4 rounded-full bg-gray-200 overflow-hidden">
-                <div class="h-full bg-red-600 w-2/5" style="width: 40%"></div>
-              </div>
-            </div>
-            <div>
-              <p class="text-sm text-gray-500 mb-2">Critical Miss Rate</p>
-              <div class="h-4 rounded-full bg-gray-200 overflow-hidden">
-                <div class="h-full bg-green-600 w-1/4" style="width: 25%"></div>
-              </div>
-            </div>
-          </div>
+<!-- Tab 3: Results (Judges) -->
+<section id="tab-results" class="tab-pane hidden">
+  <div class="card">
+    <h2 class="text-lg font-semibold mb-4">Results (Judges)</h2>
+    <div id="results-content">
+      <div class="text-center text-gray-500 py-8">Run evaluation to see results</div>
+    </div>
+  </div>
+</section>
+</main>
 
-          <p class="text-sm text-gray-500">
-            Safety rule: Under-triaging a true emergency penalized 20× more than over-triaging a mild case.
-          </p>
-        </div>
+<!-- Self-test Panel (always visible at bottom) -->
+<section id="tab-self-test" class="self-test-panel mb-6">
+  <h3 class="text-sm font-semibold mb-3 flex items-center gap-1">Self-Test Panel
+    <span id="self-test-badge" class="ml-2 px-2 py-0.5 rounded text-xs font-bold bg-gray-200 text-gray-700">Pending</span>
+  </h3>
+  <div id="self-test-list" class="space-y-1">
+    <!-- Test rows rendered here -->
+  </div>
+</section>
 
-      </div>
-    </section>
-  </main>
+<!-- Toast Container -->
+<div id="toast-container" class="fixed bottom-4 right-4 space-y-2 z-50"></div>
 
-  <!-- Toast Container -->
-  <div id="toast-container" class="toast"></div>
+<script>
+// ============================================================================
+// PRANA PRIORITY — CORE LOGIC
+// ============================================================================
 
-  <script>
-    // ==========================================
-    // FIREBASE BACKEND INTEGRATION
-    // ==========================================
+// ---- i18n dictionary ----
+const I18N = {
+  en: {
+    'app.title': 'Prana Priority',
+    'app.subtitle': 'The sickest patient is seen first.',
+    'tab.triage': 'Triage',
+    'tab.queue': 'Queue',
+    'tab.results': 'Results',
+    'form.name': 'Patient Name',
+    'form.age': 'Age',
+    'form.gender': 'Gender',
+    'form.complaint': 'Chief Complaint',
+    'form.temp': 'Temperature (°C)',
+    'form.spo2': 'SpO2 (%)',
+    'form.pulse': 'Pulse (BPM)',
+    'form.sbp': 'SBP (mmHg)',
+    'form.dbp': 'DBP (mmHg)',
+    'btn.triage': 'Run triage',
+    'btn.add-queue': 'Add to Queue',
+    'btn.abstain': 'Send to Nurse STAT Desk',
+    'btn.override': 'Override',
+    'level.1': 'Level 1 — Emergency',
+    'level.2': 'Level 2 — Urgent',
+    'level.3': 'Level 3 — Semi-urgent',
+    'level.4': 'Level 4 — Non-urgent',
+    'level.5': 'Level 5 — Stable',
+    'dept.emergency': 'Emergency / Casualty',
+    'dept.cardiology': 'Cardiology',
+    'dept.neurology': 'Neurology',
+    'dept.general': 'General Medicine',
+    'dept.obs': 'OBG / Emergency',
+    'dept.pediatrics': 'Pediatrics',
+    'dept.respiratory': 'Respiratory',
+    'room.1': 'Room 1',
+    'room.2': 'Room 2',
+    'room.3': 'Room 3',
+    'room.4': 'Room 4',
+    'room.5': 'Room 5',
+    'room.nurse': 'Nurse STAT Desk',
+    'pa.announce': 'Patient {name}, token {token}, please proceed to {room}',
+    'pa.announce.te': '({nameTe}, token {token}, {roomTe} ki velli undi)',
+    'print.slip': 'Triage Slip',
+    'print.token': 'Token',
+    'print.level': 'Priority Level',
+    'print.room': 'Room',
+    'print.time': 'Time',
+    'print.date': 'Date',
+  },
+  te: {
+    'app.title': 'ప్రణా ప్రియారిటీ',
+    'app.subtitle': 'సాధించిన రోగి ముందుగా చూడబడతారు.',
+    'tab.triage': 'ట్రయాగ్',
+    'tab.queue': 'క్యూ',
+    'tab.results': 'ఫలితాలు',
+    'form.name': 'రోగి పేరు',
+    'form.age': 'వయస్సు',
+    'form.gender': 'లింగం',
+    'form.complaint': 'ప్రధాన సమస్య',
+    'form.temp': 'ఉష్ణోగ్రత (°C)',
+    'form.spo2': 'SpO2 (%)',
+    'form.pulse': 'నాడి (BPM)',
+    'form.sbp': 'SBP (mmHg)',
+    'form.dbp': 'DBP (mmHg)',
+    'btn.triage': 'ట్రయాగ్ నడపండి',
+    'btn.add-queue': 'క్యూలో జోడించండి',
+    'btn.abstain': 'నర్స్ స్టాట్ డెస్క్‌కు పంపండి',
+    'btn.override': 'ఓవర్డైడ్',
+    'level.1': 'లెవెల్ 1 — అత్యవసరం',
+    'level.2': 'లెవెల్ 2 — తువ్వుతుంది',
+    'level.3': 'లెవెల్ 3 — అర్ధ సంతృప్తి',
+    'level.4': 'లెవెల్ 4 — అసంతృప్తి',
+    'level.5': 'లెవెల్ 5 — స్థిరమైనది',
+    'dept.emergency': 'అత్యవసరం / క్యాజ్యూలటీ',
+    'dept.cardiology': 'ಕಾರ್ಡಿಯాలజీ',
+    'dept.neurology': 'ನ್ಯೂರಾಲಜಿ',
+    'dept.general': 'ಸಾಮಾನ್ಯ ವೈದ್ಯಕೀಯ',
+    'dept.obs': 'ಒಬ డಿ. / డి. I.',
+    'dept.pediatrics': 'ಪೀಡಿಯಾಟ್ರಿಕ್ಸ್',
+    'dept.respiratory': 'ಶ್ವಾಸ',
+    'room.1': 'గది 1',
+    'room.2': 'గది 2',
+    'room.3': 'గది 3',
+    'room.4': 'గది 4',
+    'room.5': 'గది 5',
+    'room.nurse': 'నర్స్ స్టాట్ డెస్క్',
+    'pa.announce': 'రోగి {name}, టోకెన్ {token}, దయచేసి {room} కి రండు',
+    'pa.announce.te': '{nameTe}, టోకెన్ {token}, {roomTe} కి వెళ్లండి',
+    'print.slip': 'ట్రయాగ్ స్లిప్',
+    'print.token': 'టోకెన్',
+    'print.level': 'ప్రోరిటీ లెవెల్',
+    'print.room': 'గది',
+    'print.time': 'సమయం',
+    'print.date': 'తేదీ',
+  }
+};
 
-    // Your web app's Firebase configuration
-    const firebaseConfig = {
-      apiKey: "AIzaSyDlGelOJE4rwFElr6rGUfhLzwJiE2r4sFs",
-      authDomain: "triage-5a021.firebaseapp.com",
-      projectId: "triage-5a021",
-      storageBucket: "triage-5a021.firebasestorage.app",
-      messagingSenderId: "399820391961",
-      appId: "1:399820391961:web:8526da295b6b7954b74c88",
-      measurementId: "G-R9MV16KYTQ"
+let CURRENT_LANG = 'en';
+
+function t(key) {
+  return I18N[CURRENT_LANG][key] || I18N['en'][key] || key;
+}
+
+// ---- Cost Matrix (asymmetric safety) ----
+// rows: true level 1-5, cols: assigned level 1-5
+// cost[trueLevel-1][assignedLevel-1]
+const COST_MATRIX = [
+  [0,   1,   5,  20,  50],   // True L1 Emergency
+  [1,   0,   1,   5,  20],   // True L2 Urgent
+  [5,   1,   0,   1,   5],   // True L3 Semi-urgent
+  [20,  5,   1,   0,   1],   // True L4 Non-urgent
+  [50, 20,   5,   1,   0]    // True L5 Stable
+];
+const COST_ABSTAIN = 1.5;  // cost of abstaining regardless of true level
+
+// ---- Vitals Sanitization ----
+function sanitizeVitals(input) {
+  const result = {
+    tempC: null,
+    tempSource: null,
+    spo2: null,
+    pulse: null,
+    sbp: null,
+    dbp: null,
+    missing: [],
+    suspect: [],
+    warnings: []
+  };
+
+  // Temperature
+  if (input.temp !== undefined && input.temp !== '' && input.temp != null) {
+    const t = parseFloat(String(input.temp).replace(/[°cf]/gi, '').trim());
+    if (!isNaN(t)) {
+      if (t > 80) {
+        result.tempC = ((t - 32) * 5 / 9).toFixed(1);
+        result.tempSource = 'fahrenheit';
+      } else {
+        result.tempC = t.toFixed(1);
+        result.tempSource = 'celsius';
+      }
+    } else {
+      result.missing.push('temperature');
+    }
+  } else {
+    result.missing.push('temperature');
+  }
+
+  // SpO2
+  if (input.spo2 !== undefined && input.spo2 !== '' && input.spo2 != null) {
+    const s = parseFloat(input.spo2);
+    if (!isNaN(s)) {
+      if (s < 50 || s > 100) {
+        result.suspect.push('spo2');
+        result.warnings.push('SpO2 ' + s + '% is implausible (<50 or >100). Re-measure.');
+      } else {
+        result.spo2 = s;
+      }
+    } else {
+      result.missing.push('spo2');
+    }
+  } else {
+    result.missing.push('spo2');
+  }
+
+  // Pulse
+  if (input.pulse !== undefined && input.pulse !== '' && input.pulse != null) {
+    const p = parseFloat(input.pulse);
+    if (!isNaN(p)) {
+      if (p < 20 || p > 250) {
+        result.suspect.push('pulse');
+        result.warnings.push('Pulse ' + p + ' BPM is implausible (<20 or >250). Re-measure.');
+      } else {
+        result.pulse = p;
+      }
+    } else {
+      result.missing.push('pulse');
+    }
+  } else {
+    result.missing.push('pulse');
+  }
+
+  // SBP
+  if (input.sbp !== undefined && input.sbp !== '' && input.sbp != null) {
+    const s = parseFloat(input.sbp);
+    if (!isNaN(s)) {
+      if (s === 0) {
+        result.missing.push('sbp');
+      } else if (s < 50 || s > 300) {
+        result.suspect.push('sbp');
+        result.warnings.push('SBP ' + s + ' mmHg is implausible. Re-measure.');
+      } else {
+        result.sbp = s;
+      }
+    } else {
+      result.missing.push('sbp');
+    }
+  } else {
+    result.missing.push('sbp');
+  }
+
+  // DBP
+  if (input.dbp !== undefined && input.dbp !== '' && input.dbp != null) {
+    const d = parseFloat(input.dbp);
+    if (!isNaN(d)) {
+      if (d === 0) {
+        result.missing.push('dbp');
+      } else if (d < 30 || d > 200) {
+        result.suspect.push('dbp');
+        result.warnings.push('DBP ' + d + ' mmHg is implausible. Re-measure.');
+      } else {
+        result.dbp = d;
+      }
+    } else {
+      result.missing.push('dbp');
+    }
+  } else {
+    result.missing.push('dbp');
+  }
+
+  return result;
+}
+
+// ---- Shock Index ----
+function shockIndex(pulse, sbp) {
+  if (pulse == null || sbp == null || sbp === 0) return null;
+  return (pulse / sbp).toFixed(2);
+}
+
+// ---- Multilingual Symptom Lexicon ----
+const SYMPTOM_LEXICON = {
+  chest_pain: {
+    terms: ['chest pain', 'seene mein dard', 'chhati dard', 'gundelo noppi', 'గుండె నొప్పి', 'గుండే నొప్పి'],
+    context: ['chest', 'heart', 'cardiac', 'left arm', 'గుండె', 'seene', 'chhati'],
+    level: 2
+  },
+  breathlessness: {
+    terms: ['breathlessness', 'dyspnea', 'shortness of breath', 'saans phoolna', 'saans nahi aa rahi', 'saans nahi', 'ಆಯಾಸం', 'ఆయాసం', 'aayasam'],
+    level: 2
+  },
+  stroke: {
+    terms: ['stroke', 'hemiplegia', 'one-sided weakness', 'facial droop', 'slurred speech', 'లక్వా', 'పక్షవాతం', 'ఒక వైపు చేయి', 'ఒక వైపు కాలు', 'మాట ముద్దగా', 'లకవా'],
+    level: 2
+  },
+  snakebite: {
+    terms: ['snakebite', 'snake bite', 'సర్ప దంచు', 'సార్పు కాటు'],
+    level: 1
+  },
+  poisoning: {
+    terms: ['poisoning', 'poison', 'విషం'],
+    level: 1
+  },
+  severe_bleeding: {
+    terms: ['severe bleeding', 'heavy bleeding'],
+    level: 1
+  },
+  seizure: {
+    terms: ['seizure', 'convulsion', 'fits'],
+    level: 1
+  },
+  severe_abdominal_pain: {
+    terms: ['severe abdominal pain', 'stomach pain severe'],
+    level: 2
+  },
+  pregnancy_bleeding: {
+    terms: ['pregnancy bleeding', 'vaginal bleeding'],
+    level: 1
+  },
+  high_fever_stiff_neck: {
+    terms: ['high fever with stiff neck', 'fever stiff neck'],
+    level: 2
+  },
+  diabetic_emergency: {
+    terms: ['diabetic emergency', 'hypoglycaemia', 'low blood sugar'],
+    level: 2
+  },
+  unconscious: {
+    terms: ['unconscious', 'unresponsive', 'collapsed', 'not breathing'],
+    level: 1
+  }
+};
+
+function wholeWordMatch(text, term) {
+  const t = text.toLowerCase().trim();
+  const termLower = term.toLowerCase().trim();
+  const escaped = termLower.replace(/[.*+?^${}()|[\]\]/g, '\\$&');
+  const regex = new RegExp('(^|\\s)' + escaped + '(\\s|$)', 'i');
+  return regex.test(t);
+}
+
+function detectSymptoms(complaint) {
+  const detected = [];
+  const c = complaint.toLowerCase();
+  for (const [key, def] of Object.entries(SYMPTOM_LEXICON)) {
+    for (const term of def.terms) {
+      if (wholeWordMatch(complaint, term)) {
+        detected.push({ key: key, term: term, level: def.level });
+        break;
+      }
+    }
+  }
+  return detected;
+}
+
+// ---- Pure Triage Function ----
+function triage(input) {
+  const result = {
+    level: null,
+    dept: null,
+    room: null,
+    flags: [],
+    decision: null,
+    confidence: null,
+    abstain: false,
+    reason: '',
+    missingVitals: [],
+    suspectVitals: []
+  };
+
+  // 1. Sanitize vitals
+  const vitals = sanitizeVitals(input);
+  result.missingVitals = vitals.missing;
+  result.suspectVitals = vitals.suspect;
+  result.flags = vitals.warnings.slice();
+
+  const age = input.age != null ? parseFloat(input.age) : null;
+  const isChild = age != null && age < 12;
+  const complaint = String(input.complaint || '').trim();
+  const complaintLower = complaint.toLowerCase();
+
+  // 2. Hard overrides (instant Level 1)
+  let hardOverride = false;
+  let overrideReason = '';
+
+  if (vitals.spo2 != null && vitals.spo2 <= 85) {
+    hardOverride = true;
+    overrideReason = 'SpO2 ' + vitals.spo2 + '% ≤ 85%';
+  }
+  if (!hardOverride && vitals.pulse != null && vitals.sbp != null && vitals.sbp > 0 && !isChild) {
+    const si = shockIndex(vitals.pulse, vitals.sbp);
+    if (si != null && parseFloat(si) >= 1.4) {
+      hardOverride = true;
+      overrideReason = 'Shock Index ' + si + ' ≥ 1.4';
+    }
+  }
+  if (!hardOverride) {
+    for (const kw of ['unconscious', 'not breathing', 'collapsed', 'seizure']) {
+      if (complaintLower.includes(kw)) {
+        hardOverride = true;
+        overrideReason = 'Patient reports: ' + kw;
+        break;
+      }
+    }
+  }
+  if (!hardOverride && vitals.sbp != null && vitals.sbp < 80 && !isChild) {
+    hardOverride = true;
+    overrideReason = 'SBP ' + vitals.sbp + ' < 80 mmHg';
+  }
+
+  if (hardOverride) {
+    result.level = 1;
+    result.dept = 'Emergency / Casualty';
+    result.room = 'Room 1';
+    result.decision = 'LEVEL 1 — Emergency';
+    result.confidence = 'High';
+    result.abstain = false;
+    result.reason = 'HARD OVERRIDE: ' + overrideReason + '. Immediate emergency care required.';
+    result.flags.push(overrideReason);
+    return result;
+  }
+
+  // 3. Multilingual symptom detection
+  const symptoms = detectSymptoms(complaint);
+
+  // Chest pain: requires chest/heart/left-arm context OR (age>=40 AND sweating)
+  let chestPainConfirmed = false;
+  for (const s of symptoms) {
+    if (s.key === 'chest_pain') {
+      const hasContext = SYMPTOM_LEXICON.chest_pain.context.some(c => complaintLower.includes(c.toLowerCase()));
+      const ageSweat = age != null && age >= 40 && complaintLower.includes('sweat');
+      if (hasContext || ageSweat) {
+        chestPainConfirmed = true;
+        result.flags.push('Chest pain with cardiac context');
+      } else {
+        result.flags.push('Chest pain mentioned without cardiac context');
+      }
+    }
+  }
+
+  // Stroke pattern
+  let strokeDetected = false;
+  for (const s of symptoms) {
+    if (s.key === 'stroke') {
+      strokeDetected = true;
+      result.flags.push('Stroke symptoms detected');
+    }
+  }
+
+  // Life-threatening (Level 1 from symptoms)
+  let lifeThreatening = false;
+  for (const s of symptoms) {
+    if (s.level === 1 && s.key !== 'chest_pain') {
+      lifeThreatening = true;
+      break;
+    }
+  }
+
+  if (lifeThreatening) {
+    result.level = 1;
+    result.dept = 'Emergency / Casualty';
+    result.room = 'Room 1';
+    result.decision = 'LEVEL 1 — Emergency';
+    result.confidence = 'High';
+    result.abstain = false;
+    result.reason = 'Life-threatening symptom detected via multilingual lexicon.';
+    return result;
+  }
+
+  // 4. Level 2 rules
+  let level2 = false;
+  let level2Reason = '';
+
+  if (chestPainConfirmed) {
+    level2 = true;
+    level2Reason = 'ACS pattern: chest pain with cardiac context';
+    result.dept = 'Cardiology';
+    result.room = 'Room 2';
+  }
+  else if (strokeDetected) {
+    level2 = true;
+    level2Reason = 'Stroke pattern detected';
+    result.dept = 'Neurology';
+    result.room = 'Room 2';
+  }
+  else if (vitals.spo2 != null && vitals.spo2 <= 90) {
+    level2 = true;
+    level2Reason = 'Respiratory distress: SpO2 ' + vitals.spo2 + '% ≤ 90%';
+    result.dept = 'Respiratory';
+    result.room = 'Room 2';
+  }
+  else if (vitals.sbp != null && vitals.sbp >= 180 && strokeDetected) {
+    level2 = true;
+    level2Reason = 'SBP ' + vitals.sbp + ' ≥ 180 with neuro symptoms';
+    result.dept = 'Neurology';
+    result.room = 'Room 2';
+  }
+  else {
+    for (const s of symptoms) {
+      if (s.key === 'diabetic_emergency') {
+        level2 = true;
+        level2Reason = 'Diabetic emergency / hypoglycaemia';
+        result.dept = 'General Medicine';
+        result.room = 'Room 2';
+        break;
+      }
+    }
+  }
+
+  if (level2) {
+    result.level = 2;
+    result.decision = 'LEVEL 2 — Urgent';
+    result.confidence = 'Medium-High';
+    result.abstain = false;
+    result.reason = level2Reason;
+    return result;
+  }
+
+  // 5. Level 3 vs 4
+  let level = 4;
+  let dept = 'General Medicine';
+  let room = 'Room 4';
+  let reason = 'Mild presentation — routine care';
+  let confidence = 'Medium';
+
+  const hasFever = vitals.tempC != null && parseFloat(vitals.tempC) >= 38.0;
+  const highFever = vitals.tempC != null && parseFloat(vitals.tempC) >= 39.5;
+  const hasVomiting = complaintLower.includes('vomit');
+  const hasDehydration = complaintLower.includes('dehydration');
+  const extremeAge = age != null && (age < 5 || age > 65);
+  const abnormalVitals = vitals.suspect.length > 0 || (vitals.spo2 != null && vitals.spo2 <= 94);
+
+  if (hasFever) {
+    if (highFever || hasVomiting || hasDehydration || extremeAge || abnormalVitals) {
+      level = 3;
+      dept = 'General Medicine';
+      room = 'Room 3';
+      reason = 'Fever ' + vitals.tempC + '°C with escalation factors';
+      confidence = 'Medium';
+    } else {
+      level = 4;
+      reason = 'Mild fever ' + vitals.tempC + '°C — routine care';
+      confidence = 'Medium';
+    }
+  } else {
+    const mildKeywords = ['cold', 'cough', 'rash', 'headache mild', 'sore throat'];
+    const isMild = mildKeywords.some(k => complaintLower.includes(k));
+    if (isMild) {
+      level = 4;
+      reason = 'Mild symptoms — routine OPD';
+      confidence = 'Medium';
+    } else {
+      level = 3;
+      reason = 'Symptoms present — semi-urgent assessment';
+      confidence = 'Low-Medium';
+    }
+  }
+
+  result.level = level;
+  result.dept = dept;
+  result.room = room;
+  result.decision = 'LEVEL ' + level + ' — ' + (level === 1 ? 'Emergency' : level === 2 ? 'Urgent' : level === 3 ? 'Semi-urgent' : level === 4 ? 'Non-urgent' : 'Stable');
+  result.confidence = confidence;
+  result.abstain = false;
+  result.reason = reason;
+  return result;
+}
+
+// ---- Asymmetric Cost Decision Wrapper ----
+function triageWithCost(input) {
+  const base = triage(input);
+  const complaint = String(input.complaint || '').trim();
+  const criticalMissing = base.missingVitals.includes('spo2') || base.missingVitals.includes('sbp') || base.missingVitals.includes('pulse');
+  const vagueComplaint = complaint.length < 10 || !/[a-zA-Z0-9]/.test(complaint);
+
+  if (base.level === 4 && criticalMissing && vagueComplaint) {
+    base.abstain = true;
+    base.level = null;
+    base.dept = 'Triage Nurse STAT Desk';
+    base.room = 'Nurse Station';
+    base.decision = 'ABSTAIN — Nurse Review';
+    base.confidence = 'Low';
+    base.reason = 'Critical vitals missing and complaint is vague. Abstaining to nurse for manual assessment.';
+    base.flags.push('ABSTAIN: missing vitals + vague complaint');
+  }
+
+  return base;
+}
+
+window.triage = triage;
+window.triageWithCost = triageWithCost;
+window.sanitizeVitals = sanitizeVitals;
+window.detectSymptoms = detectSymptoms;
+window.COST_MATRIX = COST_MATRIX;
+window.COST_ABSTAIN = COST_ABSTAIN;
+
+console.log('Prana Priority core loaded');
+
+// ============================================================================
+// QUEUE ENGINE
+// ============================================================================
+
+const QUEUE_STATE = {
+  waiting: [],
+  consulting: null,
+  completed: [],
+  nextToken: 1,
+  doctors: 2,
+  lastAgingCheck: Date.now()
+};
+
+const LEVEL_ROOM_MAP = {
+  1: 'Room 1',
+  2: 'Room 2',
+  3: 'Room 3',
+  4: 'Room 4',
+  5: 'Room 5'
+};
+
+function computeWaitMinutes(patient) {
+  const now = Date.now();
+  const arrival = patient.arrivalTime || now;
+  return Math.floor((now - arrival) / 60000);
+}
+
+function sortQueue(queue) {
+  const now = Date.now();
+  const AGING_THRESHOLD = 30 * 60000;
+  return [...queue].sort((a, b) => {
+    const levelA = a.level || 99;
+    const levelB = b.level || 99;
+    if (levelA !== levelB) return levelA - levelB;
+    const waitA = now - (a.arrivalTime || now);
+    const waitB = now - (b.arrivalTime || now);
+    const agedA = (levelA === 3 || levelA === 4) && waitA > AGING_THRESHOLD;
+    const agedB = (levelB === 3 || levelB === 4) && waitB > AGING_THRESHOLD;
+    if (agedA && !agedB) return -1;
+    if (!agedA && agedB) return 1;
+    return (a.arrivalTime || 0) - (b.arrivalTime || 0);
+  });
+}
+
+function addToQueue(patientData, triageResult) {
+  const patient = {
+    id: 'P' + Date.now(),
+    token: QUEUE_STATE.nextToken++,
+    name: patientData.name || '',
+    age: patientData.age,
+    gender: patientData.gender,
+    complaint: patientData.complaint || '',
+    level: triageResult.level,
+    dept: triageResult.dept,
+    room: triageResult.room || LEVEL_ROOM_MAP[triageResult.level] || 'Room 4',
+    status: 'waiting',
+    arrivalTime: Date.now(),
+    calledTime: null,
+    completedTime: null,
+    flags: triageResult.flags || [],
+    reason: triageResult.reason || ''
+  };
+  QUEUE_STATE.waiting.push(patient);
+  QUEUE_STATE.waiting = sortQueue(QUEUE_STATE.waiting);
+  saveQueue();
+  renderQueue();
+  return patient;
+}
+
+function callNextPatient() {
+  if (QUEUE_STATE.consulting) {
+    showToast('A patient is already in consultation', 'orange');
+    return null;
+  }
+  if (QUEUE_STATE.waiting.length === 0) {
+    showToast('No patients in queue', 'gray');
+    return null;
+  }
+  const patient = QUEUE_STATE.waiting.shift();
+  patient.status = 'consulting';
+  patient.calledTime = Date.now();
+  QUEUE_STATE.consulting = patient;
+  saveQueue();
+  renderQueue();
+  announcePatient(patient);
+  return patient;
+}
+
+function completeConsultation() {
+  if (!QUEUE_STATE.consulting) return null;
+  const patient = QUEUE_STATE.consulting;
+  patient.status = 'completed';
+  patient.completedTime = Date.now();
+  QUEUE_STATE.completed.push(patient);
+  QUEUE_STATE.consulting = null;
+  saveQueue();
+  renderQueue();
+  return patient;
+}
+
+function saveQueue() {
+  try {
+    const data = {
+      waiting: QUEUE_STATE.waiting,
+      consulting: QUEUE_STATE.consulting,
+      completed: QUEUE_STATE.completed,
+      nextToken: QUEUE_STATE.nextToken
     };
+    localStorage.setItem('pranapriority_queue', JSON.stringify(data));
+  } catch (e) {
+    console.warn('localStorage save failed:', e);
+  }
+}
 
-    // Initialize Firebase (Compat SDK)
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
-
-    // Enable offline persistence
-    db.enablePersistence()
-      .catch((err) => {
-        console.warn('Firebase offline persistence:', err.code);
-      });
-
-    // Firebase connection status indicator
-    const firebaseStatusEl = document.getElementById('firebase-status');
-
-    function setFirebaseStatus(connected) {
-      if (connected) {
-        firebaseStatusEl.className = 'px-3 py-1 rounded-md text-xs font-medium bg-green-100 text-green-800 border border-green-200';
-        firebaseStatusEl.textContent = '● Firebase: Connected';
-      } else {
-        firebaseStatusEl.className = 'px-3 py-1 rounded-md text-xs font-medium bg-red-100 text-red-800 border border-red-200';
-        firebaseStatusEl.textContent = '● Firebase: Offline';
-      }
+function loadQueue() {
+  try {
+    const raw = localStorage.getItem('pranapriority_queue');
+    if (raw) {
+      const data = JSON.parse(raw);
+      QUEUE_STATE.waiting = data.waiting || [];
+      QUEUE_STATE.consulting = data.consulting || null;
+      QUEUE_STATE.completed = data.completed || [];
+      QUEUE_STATE.nextToken = data.nextToken || 1;
     }
-
-    // Simple connectivity check via a lightweight Firestore operation
-    let firebaseConnected = false;
-    function checkFirebaseConnection() {
-      db.collection('_connection_check').doc('ping').get()
-        .then(() => {
-          if (!firebaseConnected) {
-            firebaseConnected = true;
-            setFirebaseStatus(true);
-          }
-        })
-        .catch(() => {
-          firebaseConnected = false;
-          setFirebaseStatus(false);
-        });
-    }
-    checkFirebaseConnection();
-    setInterval(checkFirebaseConnection, 30000);
-
-    // STATE - application state with Firebase reference
-    const STATE = {
-      nextRoom: 1,
-      db,
-      patientsCollection: db.collection('patients'),
-      unsubscribeQueue: null
-    };
-
-    // ==========================================
-    // VALIDATION & SANITIZATION
-    // ==========================================
-    
-    // Vitals sanitizer - runs BEFORE any AI or Firebase
-    function sanitizeVitals(age, tempF, spo2, pulse, bs, bd) {
-      // Convert Fahrenheit to Celsius if > 80°F
-      let tempC = tempF;
-      if (tempF > 80) {
-        tempC = ((tempF - 32) * 5 / 9).toFixed(1);
-      }
-      
-      // Detect inverted BP and swap
-      let systolic = bs;
-      let diastolic = bd;
-      if (systolic < diastolic && systolic > 0 && diastolic > 0) {
-        // Swap: systolic should be higher
-        [systolic, diastolic] = [diastolic, systolic];
-      }
-      
-      // Calculate Shock Index
-      let shockIndex = null;
-      if (systolic > 0 && pulse > 0) {
-        shockIndex = (pulse / systolic).toFixed(2);
-      }
-      
-      // Detect 0/0 BP (sensor disconnect if patient is talking)
-      let bpDisconnected = (systolic === 0 && diastolic === 0);
-      
-      return {
-        tempC,
-        systolic,
-        diastolic,
-        shockIndex,
-        pulse,
-        spo2,
-        age,
-        bpDisconnected
-      };
-    }
-
-    // ==========================================
-    // ESCALATION OVERRIDES (0ms latency, runs BEFORE any AI)
-    // ==========================================
-    
-    function determinePriority(vitals, symptoms, age) {
-      const { tempC, systolic, diastolic, shockIndex, pulse, spo2, bpDisconnected } = vitals;
-      
-      // EScalation 1: SpO2 <= 85% OR Shock Index >= 1.4 -> Level 1 (Red)
-      if (spo2 <= 85 || (shockIndex !== null && parseFloat(shockIndex) >= 1.4)) {
-        return { level: 1, color: "red", room: `Casualty`, icon: "🩺", description: "Critical - Immediate resuscitation required" };
-      }
-      
-      // EScalation 2: Adult age >= 40 with chest pain -> Level 2 (Orange)
-      const hasChestPain = symptoms.includes('chest_pain') || 
-                           symptoms.includes('gundelo_noppi') ||
-                           symptoms.includes('chhati_me_dard');
-      
-      if (age >= 40 && hasChestPain) {
-        return { level: 2, color: "orange", room: "Cardiology", icon: "🫀", description: "Chest pain in patient >= 40 years - Cardiology consultation needed" };
-      }
-      
-      // EScalation 3: Stroke signs -> Level 2 (Orange)
-      const strokeKeywords = ['pakshavatham', 'facial_droop', 'slurred_speech', 'aayasam'];
-      const hasStroke = symptoms.some(s => strokeKeywords.includes(s));
-      
-      if (hasStroke) {
-        return { level: 2, color: "orange", room: "Neurology", icon: "🧠", description: "Stroke signs detected - Neurology consultation required" };
-      }
-      
-      // Level 2: Mild respiratory concern / fever (Orange)
-      const tempNum = parseFloat(tempC);
-      if (spo2 <= 95 || tempNum > 38.5) {
-        return { level: 2, color: "orange", room: "General", icon: "🫁", description: "Mild respiratory concern / fever - Further assessment needed" };
-      }
-      
-      // Level 3: Semi-urgent (Yellow) - borderline vitals
-      if (spo2 <= 98 || pulse > 110 || pulse < 50 || tempNum > 38.0 || tempNum < 35.0) {
-        return { level: 3, color: "yellow", room: "General Ward", icon: "🏥", description: "Semi-urgent - Routine assessment with monitoring" };
-      }
-
-      // Level 4: Non-urgent (Green) - stable vitals
-      if (spo2 <= 100 && pulse >= 50 && pulse <= 110 && tempNum >= 35.0 && tempNum <= 38.0) {
-        return { level: 4, color: "green", room: "OPD", icon: "🩺", description: "Non-urgent - Stable vitals, routine OPD consultation" };
-      }
-
-      // Level 5: Stable / follow-up (Blue)
-      return { level: 5, color: "blue", room: "Follow-up", icon: "📋", description: "Stable - Follow-up / routine checkup" };
-    }
-
-    // ==========================================
-    // SYMPTOM CHIP HANDLING
-    // ==========================================
-    
-    const symptomChips = document.querySelectorAll('.symptom-chip');
-    let selectedSymptoms = new Set();
-    
-    symptomChips.forEach(chip => {
-      chip.addEventListener('click', () => {
-        chip.classList.toggle('bg-purple-600', selectedSymptoms.has(chip.dataset.symptom));
-        chip.classList.toggle('text-white', selectedSymptoms.has(chip.dataset.symptom));
-        chip.classList.toggle('bg-gray-100', !selectedSymptoms.has(chip.dataset.symptom));
-        chip.classList.toggle('text-gray-700', !selectedSymptoms.has(chip.dataset.symptom));
-        
-        if (selectedSymptoms.has(chip.dataset.symptom)) {
-          selectedSymptoms.delete(chip.dataset.symptom);
-        } else {
-          selectedSymptoms.add(chip.dataset.symptom);
-        }
-      });
-    });
-
-    // ==========================================
-    // ABSTENTION BUTTON
-    // ==========================================
-    
-    const abstentionBtn = document.getElementById('abstention-btn');
-    
-    abstentionBtn.addEventListener('click', () => {
-      showToast("Patient sent to Nurse for further assessment", "purple");
-    });
-
-    // ==========================================
-    // TRIAGE PROCESSING
-    // ==========================================
-    
-    function processTriage() {
-      const age = parseInt(document.getElementById('age-input').value) || 0;
-      const gender = document.getElementById('gender-select').value;
-      const language = document.getElementById('language-select').value;
-      const spo2 = parseInt(document.getElementById('spo2-input').value) || 0;
-      const pulse = parseInt(document.getElementById('pulse-input').value) || 0;
-      const bs = parseInt(document.getElementById('bs-input').value) || 0;
-      const bd = parseInt(document.getElementById('bd-input').value) || 0;
-      const tempF = parseFloat(document.getElementById('temp-f-input').value) || 98.6;
-      
-      const symptoms = Array.from(selectedSymptoms);
-      
-      // Sanitize vitals
-      const vitals = sanitizeVitals(age, tempF, spo2, pulse, bs, bd);
-      
-      // Determine priority using hard-coded escalation overrides
-      const result = determinePriority(vitals, symptoms, age);
-      
-      // Display result card
-      displayResultCard(result, vitals, age);
-      
-      // Add to local queue
-      addToQueue(result, { age, gender, language, vitals, symptoms });
-    }
-
-    function displayResultCard(result, vitals, age) {
-      const card = document.getElementById('result-card');
-      const iconEl = document.getElementById('result-icon');
-      const levelEl = document.getElementById('result-level');
-      const textEl = document.getElementById('result-text');
-      const roomEl = document.getElementById('result-room');
-      const printBtn = document.getElementById('print-btn');
-      
-      // Set colors based on level
-      const levelClasses = ['level-1', 'level-2', 'level-3', 'level-4', 'level-5'];
-      card.className = 'color-card';
-      card.classList.add(levelClasses[result.level - 1] || 'level-3');
-      
-      // Set icon
-      iconEl.innerHTML = result.icon;
-      iconEl.className = 'icon-large';
-      
-      // Set level text
-      levelEl.textContent = `Level ${result.level}`;
-      
-      // Set description text
-      textEl.innerHTML = `<p class="text-gray-800 mb-2">${result.description}</p>`;
-      
-      // Set room
-      roomEl.innerHTML = `<p class="text-purple-600 font-medium">Room ${result.room}</p>`;
-      
-      // Show card
-      card.classList.remove('hidden');
-      
-      // Scroll to card
-      card.scrollIntoView({ behavior: 'smooth' });
-    }
-
-    // ==========================================
-    // FIREBASE INTEGRATION - QUEUE RENDERING
-    // ==========================================
-
-    // Render a single patient to the queue UI (used by both local triage and Firebase sync)
-    function renderPatientToQueueUI(patientData, level, docId, roomNumber) {
-      const list = document.getElementById('patient-list');
-      const empty = document.getElementById('empty-state');
-
-      const priorityClass = level === 1 ? 'level-1' : level === 2 ? 'level-2' : level === 3 ? 'level-3' : level === 4 ? 'level-4' : 'level-5';
-
-      const li = document.createElement('div');
-      li.className = `patient-item flex items-center py-3 px-4 rounded-lg border-l-4 ${priorityClass} hover:bg-gray-50 transition-colors`;
-      li.setAttribute('data-docid', docId || '');
-      li.innerHTML = `
-        <span class="w-8 text-center font-bold">${roomNumber}</span>
-        <div class="flex-1">
-          <p class="font-medium truncate">${patientData.age}yr ${patientData.gender}</p>
-          <p class="text-xs text-gray-500">${patientData.language === 'telugu' ? 'తెలుగు' : patientData.language === 'hindi' ? 'हिंदी' : 'English'}</p>
-        </div>
-        <span class="text-sm font-bold ${priorityClass}">${level}</span>
-        <button class="discharge-btn ml-4 px-3 py-1 rounded bg-red-50 text-red-600 text-xs font-medium border border-red-200 hover:bg-red-100 transition-colors no-print" title="Discharge / mark seen">✓</button>
-      `;
-
-      // Insert sorted by priority level (1 first, then 2, 3, 4, 5)
-      const priorityOrder = { 1: 0, 2: 1, 3: 2, 4: 3, 5: 4 };
-      const newPriority = priorityOrder[level] || 4;
-
-      if (list.children.length === 0) {
-        list.appendChild(li);
-        empty.classList.add('hidden');
-      } else {
-        let inserted = false;
-        for (let i = 0; i < list.children.length; i++) {
-          const existingPriority = parseInt(list.children[i].querySelector('span:last-child').textContent) || 3;
-          if (newPriority < existingPriority) {
-            list.insertBefore(li, list.children[i]);
-            inserted = true;
-            break;
-          }
-        }
-        if (!inserted) {
-          list.appendChild(li);
-        }
-      }
-
-      return li;
-    }
-
-    function renumberRooms() {
-      const list = document.getElementById('patient-list');
-      const remaining = list.children;
-      for (let i = 0; i < remaining.length; i++) {
-        remaining[i].querySelector('span:first-child').textContent = i + 1;
-      }
-    }
-
-    function priorityClassFromLevel(level) {
-      return level === 1 ? 'level-1' : level === 2 ? 'level-2' : level === 3 ? 'level-3' : level === 4 ? 'level-4' : 'level-5';
-    }
-
-    function addToQueue(result, patientData) {
-      const roomNumber = STATE.nextRoom;
-
-      // Render locally first for immediate feedback
-      renderPatientToQueueUI(patientData, result.level, null, roomNumber);
-
-      STATE.nextRoom++;
-
-      // Save to Firebase
-      const patientRecord = {
-        age: patientData.age,
-        gender: patientData.gender,
-        language: patientData.language,
-        vitals: patientData.vitals,
-        symptoms: patientData.symptoms,
-        level: result.level,
-        room: result.room,
-        color: result.color,
-        icon: result.icon,
-        description: result.description,
-        status: 'waiting',
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      };
-
-      STATE.patientsCollection.add(patientRecord)
-        .then((docRef) => {
-          // Tag the most recently rendered li without a docId
-          const lis = document.getElementById('patient-list').children;
-          for (let i = lis.length - 1; i >= 0; i--) {
-            if (!lis[i].getAttribute('data-docid') || lis[i].getAttribute('data-docid') === '') {
-              lis[i].setAttribute('data-docid', docRef.id);
-              break;
-            }
-          }
-        })
-        .catch((error) => {
-          console.error('Error saving patient to Firebase:', error);
-          showToast('Patient saved locally - Firebase sync pending', 'orange');
-        });
-
-      // Show toast
-      showToast(`Patient triaged as Level ${result.level}`, priorityClassFromLevel(result.level));
-
-      // Update wait-time estimates
-      updateWaitTimeEstimates();
-    }
-
-    // Discharge / mark seen handler (delegated)
-    document.getElementById('patient-list').addEventListener('click', (e) => {
-      const btn = e.target.closest('.discharge-btn');
-      if (!btn) return;
-      const li = btn.closest('.patient-item');
-      if (li) {
-        const docId = li.getAttribute('data-docid');
-        if (docId) {
-          STATE.patientsCollection.doc(docId).delete()
-            .catch((error) => {
-              console.error('Error removing patient from Firebase:', error);
-            });
-        }
-        li.remove();
-        const list = document.getElementById('patient-list');
-        // Renumber rooms
-        renumberRooms();
-        // Show empty state if needed
-        const empty = document.getElementById('empty-state');
-        if (list.children.length === 0) {
-          empty.classList.remove('hidden');
-        }
-        updateWaitTimeEstimates();
-        showToast("Patient discharged", "gray");
-      }
-    });
-
-    // ==========================================
-    // QUEUE MANAGEMENT
-    // ==========================================
-    
-    const callNextBtn = document.getElementById('call-next-btn');
-    
-    callNextBtn.addEventListener('click', () => {
-      const list = document.getElementById('patient-list');
-      const firstPatient = list.children[0];
-      
-      if (!firstPatient) {
-        showToast("No patients in queue", "gray");
-        return;
-      }
-      
-      const docId = firstPatient.getAttribute('data-docid');
-      if (docId) {
-        STATE.patientsCollection.doc(docId).update({ status: 'called', calledAt: firebase.firestore.FieldValue.serverTimestamp() })
-          .catch((error) => {
-            console.error('Error updating patient status in Firebase:', error);
-          });
-      }
-
-      // Remove first patient
-      firstPatient.remove();
-
-      // Update room numbers
-      renumberRooms();
-      
-      showToast("Patient called for consultation", "purple");
-      
-      // Remove empty state if patients remain
-      const empty = document.getElementById('empty-state');
-      if (list.children.length === 0) {
-        empty.classList.remove('hidden');
-      }
-
-      // Update wait-time estimates
-      updateWaitTimeEstimates();
-    });
-
-    // ==========================================
-    // TOAST NOTIFICATIONS
-    // ==========================================
-    
-    function showToast(message, color = "purple") {
-      const container = document.getElementById('toast-container');
-      const toast = document.createElement('div');
-      
-      toast.className = `toast bg-${color}-600`;
-      toast.textContent = message;
-      
-      container.appendChild(toast);
-      
-      // Show
-      setTimeout(() => toast.classList.add('show'), 10);
-      
-      // Hide and remove after 3 seconds
-      setTimeout(() => {
-        toast.classList.remove('show');
-        setTimeout(() => toast.remove(), 300);
-      }, 3000);
-    }
-
-
-    // ==========================================
-    // FIREBASE INTEGRATION - REAL-TIME QUEUE SYNC
-    // ==========================================
-
-    // Load existing patients from Firebase and set up real-time listener
-    function initFirebaseQueue() {
-      // Load existing waiting patients
-      STATE.patientsCollection
-        .where('status', '==', 'waiting')
-        .orderBy('createdAt', 'asc')
-        .get()
-        .then((snapshot) => {
-          if (snapshot.empty) return;
-
-          let roomNum = 1;
-          snapshot.forEach((doc) => {
-            const data = doc.data();
-            renderPatientToQueueUI(data, data.level, doc.id, roomNum);
-            roomNum++;
-          });
-          STATE.nextRoom = roomNum;
-          updateWaitTimeEstimates();
-        })
-        .catch((error) => {
-          console.error('Error loading patients from Firebase:', error);
-        });
-
-      // Real-time listener for changes from other devices
-      STATE.unsubscribeQueue = STATE.patientsCollection
-        .where('status', '==', 'waiting')
-        .orderBy('createdAt', 'asc')
-        .onSnapshot((snapshot) => {
-          snapshot.docChanges().forEach((change) => {
-            if (change.type === 'added') {
-              const docId = change.doc.id;
-              const existing = document.querySelector(`[data-docid="${docId}"]`);
-              if (!existing) {
-                const data = change.doc.data();
-                // Find next available room number
-                const list = document.getElementById('patient-list');
-                const roomNum = list.children.length + 1;
-                renderPatientToQueueUI(data, data.level, docId, roomNum);
-                STATE.nextRoom = Math.max(STATE.nextRoom, roomNum + 1);
-              }
-            } else if (change.type === 'removed') {
-              const docId = change.doc.id;
-              const existing = document.querySelector(`[data-docid="${docId}"]`);
-              if (existing) {
-                existing.remove();
-                renumberRooms();
-              }
-            } else if (change.type === 'modified') {
-              const docId = change.doc.id;
-              const existing = document.querySelector(`[data-docid="${docId}"]`);
-              if (existing && existing.querySelector('button.discharge-btn') === null) {
-                // Patient was called - remove from UI
-                existing.remove();
-                renumberRooms();
-              }
-            }
-          });
-          updateWaitTimeEstimates();
-        });
-    }
-
-    // ==========================================
-    // BINDINGS
-    // ==========================================
-
-    
-    // Process triage
-    const processBtn = document.getElementById('abstention-btn'); // Will use Enter key
-    
-    // Tab switching
-    const tabBtns = document.querySelectorAll('.tab-btn');
-    
-    tabBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        const tab = btn.dataset.tab;
-        
-        // Update active tab
-        tabBtns.forEach(b => b.classList.remove('bg-purple-600', 'text-white'));
-        btn.classList.add('bg-purple-600', 'text-white');
-        
-        // Show/hide tabs
-        document.querySelectorAll('.tab-pane').forEach(section => {
-          section.classList.add('hidden');
-        });
-        document.getElementById(`tab-${tab}`).classList.remove('hidden');
-      });
-    });
-    
-    // Initialize: show nurse tab first
-    document.querySelector('.tab-btn[data-tab="nurse"]').click()
-
-    // Initialize Firebase queue sync
-    initFirebaseQueue();
-    
-    // Print button
-    document.getElementById('print-btn').addEventListener('click', () => {
-      window.print();
-    });
-    
-    // Enter key submits triage
-    document.querySelectorAll('input').forEach(input => {
-      input.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-          processTriage();
-        }
-      });
-    });
-
-    // ==========================================
-    // WAIT-TIME ESTIMATES
-    // ==========================================
-    const WAIT_TIMES = { 1: '<2 min', 2: '<10 min', 3: '<20 min', 4: '<30 min', 5: '<45 min' };
-
-    function updateWaitTimeEstimates() {
-      const list = document.getElementById('patient-list');
-      const counts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-      for (const item of list.children) {
-        const level = parseInt(item.querySelector('span:last-of-type').textContent, 10);
-        if (counts[level] !== undefined) counts[level]++;
-      }
-      // Estimate: each patient ahead adds ~8 min per level tier
-      for (const [level, label] of Object.entries(WAIT_TIMES)) {
-        const el = document.getElementById(`wait-level-${level}`);
-        const ahead = counts[level];
-        if (ahead === 0) {
-          el.textContent = 'None';
-          el.className = 'text-sm font-bold text-gray-600';
-        } else {
-          const mins = ahead * 8;
-          el.textContent = `<${mins} min`;
-          el.className = 'text-sm font-bold';
-        }
-      }
-    }
-
-    // ==========================================
-    // SEARCH / FILTER
-    // ==========================================
-    const queueSearch = document.getElementById('queue-search');
-    queueSearch.addEventListener('input', () => {
-      const term = queueSearch.value.toLowerCase();
-      const list = document.getElementById('patient-list');
-      for (const item of list.children) {
-        const text = item.textContent.toLowerCase();
-        item.style.display = text.includes(term) ? 'flex' : 'none';
-      }
-      // Update empty state visibility based on filtered results
-      const visible = Array.from(list.children).some(item => item.style.display !== 'none');
-      const empty = document.getElementById('empty-state');
-      if (list.children.length === 0) {
-        empty.classList.remove('hidden');
-      } else if (!visible) {
-        empty.classList.remove('hidden');
-      } else {
-        empty.classList.add('hidden');
-      }
-    });
-
-    // ==========================================
-    // DARK MODE TOGGLE
-    // ==========================================
-    const themeToggle = document.getElementById('theme-toggle');
-    const htmlEl = document.documentElement;
-
-    themeToggle.addEventListener('click', () => {
-      const isDark = htmlEl.getAttribute('data-theme') === 'dark';
-      if (isDark) {
-        htmlEl.setAttribute('data-theme', 'light');
-        themeToggle.textContent = '🌓';
-      } else {
-        htmlEl.setAttribute('data-theme', 'dark');
-        themeToggle.textContent = '🌙';
-      }
-    });
-
-    // ==========================================
-    // SMART PATIENT INTAKE - STATE & LOGIC
-    // ==========================================
-
-    const INTAKE_STATE = {
-      currentStep: 1,
-      patientData: {},
-      isSubmitting: false,
-      aadhaarMasked: true,
-      regIdCounter: 1
-    };
-
-    // Generate Patient Registration ID
-    function generateRegId() {
-      const now = new Date();
-      const dateStr = now.toISOString().slice(2, 10).replace(/-/g, '');
-      const timeStr = now.toTimeString().slice(0, 5).replace(':', '');
-      const random = Math.floor(Math.random() * 900 + 100);
-      return `PRN-${dateStr}-${timeStr}-${random}`;
-    }
-
-    // Step navigation
-    function showStep(stepNum) {
-      // Hide all steps
-      document.querySelectorAll('.step-content').forEach(el => el.classList.remove('active'));
-      document.querySelectorAll('.step-circle').forEach((el, idx) => {
-        el.className = 'step-circle';
-        if (idx < stepNum - 1) el.classList.add('completed');
-        else if (idx === stepNum - 1) el.classList.add('active');
-        else el.classList.add('pending');
-      });
-
-      // Show current step
-      const stepEl = document.getElementById(`step-${stepNum}`);
-      if (stepEl) stepEl.classList.add('active');
-      INTAKE_STATE.currentStep = stepNum;
-    }
-
-    // Clear errors
-    function clearErrors(formId) {
-      document.querySelectorAll(`#${formId} .error-text`).forEach(el => el.classList.remove('visible'));
-      document.querySelectorAll(`#${formId} .input-error`).forEach(el => el.classList.remove('input-error'));
-    }
-
-    // Show error
-    function showError(fieldId, message) {
-      const errEl = document.getElementById(`err-${fieldId}`);
-      const inputEl = document.getElementById(fieldId);
-      if (errEl) errEl.classList.add('visible');
-      if (inputEl) inputEl.classList.add('input-error');
-    }
-
-    // Aadhaar masking
-    function setupAadhaarToggle() {
-      const input = document.getElementById('reg-aadhaar');
-      const toggle = document.getElementById('aadhaar-toggle');
-
-      input.addEventListener('input', (e) => {
-        let val = e.target.value.replace(/\D/g, '');
-        if (val.length > 12) val = val.slice(0, 12);
-
-        if (INTAKE_STATE.aadhaarMasked && val.length > 4) {
-          const visible = val.slice(-4);
-          const masked = '*'.repeat(val.length - 4);
-          e.target.value = masked + visible;
-        } else {
-          e.target.value = val;
-        }
-      });
-
-      toggle.addEventListener('click', () => {
-        INTAKE_STATE.aadhaarMasked = !INTAKE_STATE.aadhaarMasked;
-        toggle.textContent = INTAKE_STATE.aadhaarMasked ? '👁️' : '🙈';
-        toggle.title = INTAKE_STATE.aadhaarMasked ? 'Show Aadhaar' : 'Hide Aadhaar';
-        // Re-process current value
-        const raw = input.value.replace(/[*]/g, '');
-        if (raw.length > 4 && INTAKE_STATE.aadhaarMasked) {
-          input.value = '*'.repeat(raw.length - 4) + raw.slice(-4);
-        } else {
-          input.value = raw;
-        }
-      });
-    }
-
-    // Validate Aadhaar (12 digits only)
-    function validateAadhaar(val) {
-      if (!val || val.trim() === '') return { valid: true, masked: '' }; // optional
-      const digits = val.replace(/\D/g, '');
-      if (digits.length !== 12) return { valid: false, masked: '' };
-      return { valid: true, masked: digits };
-    }
-
-    // Validate Indian phone (+91 or 10 digits)
-    function validatePhone(val) {
-      if (!val || val.trim() === '') return true; // optional
-      const digits = val.replace(/[^+\d]/g, '');
-      if (digits.startsWith('+91')) {
-        const rest = digits.slice(3);
-        return rest.length === 10 && /^[6-9]/.test(rest);
-      }
-      return digits.length === 10 && /^[6-9]/.test(digits);
-    }
-
-    // Step 1 validation
-    function validateStep1() {
-      clearErrors('intake-form-step1');
-      let valid = true;
-
-      const name = document.getElementById('reg-patient-name').value.trim();
-      if (!name) { showError('reg-patient-name', 'Full name is required.'); valid = false; }
-
-      const aadhaar = document.getElementById('reg-aadhaar').value.trim();
-      const aadhaarResult = validateAadhaar(aadhaar);
-      if (!aadhaarResult.valid) { showError('reg-aadhaar', 'Aadhaar must be exactly 12 digits.'); valid = false; }
-
-      const phone = document.getElementById('reg-phone').value.trim();
-      if (!validatePhone(phone)) { showError('reg-phone', 'Enter a valid Indian mobile number (10 digits or +91 format).'); valid = false; }
-
-      const age = document.getElementById('reg-age').value.trim();
-      if (!age || parseInt(age) < 0 || parseInt(age) > 120) { showError('reg-age', 'Age is required (0-120 years).'); valid = false; }
-
-      const gender = document.getElementById('reg-gender').value;
-      if (!gender) { showError('reg-gender', 'Gender is required.'); valid = false; }
-
-      return valid;
-    }
-
-    // Step 2 validation
-    function validateStep2() {
-      clearErrors('intake-form-step2');
-      let valid = true;
-
-      const complaint = document.getElementById('reg-chief-complaint').value.trim();
-      if (!complaint) { showError('reg-chief-complaint', 'Chief complaint is required.'); valid = false; }
-
-      const duration = document.getElementById('reg-symptom-duration').value;
-      if (!duration) { showError('reg-symptom-duration', 'Duration is required.'); valid = false; }
-
-      return valid;
-    }
-
-    // Collect all form data
-    function collectIntakeData() {
-      const data = {
-        regId: document.getElementById('reg-patient-id').value,
-        patientName: document.getElementById('reg-patient-name').value.trim(),
-        aadhaar: document.getElementById('reg-aadhaar').value.trim(),
-        phone: document.getElementById('reg-phone').value.trim(),
-        age: parseInt(document.getElementById('reg-age').value),
-        gender: document.getElementById('reg-gender').value,
-        chiefComplaint: document.getElementById('reg-chief-complaint').value.trim(),
-        symptomDuration: document.getElementById('reg-symptom-duration').value,
-        medicalConditions: document.getElementById('reg-medical-conditions').value.trim(),
-        medications: document.getElementById('reg-medications').value.trim(),
-        allergies: document.getElementById('reg-allergies').value.trim(),
-        bpSystolic: document.getElementById('reg-bp-systolic').value,
-        bpDiastolic: document.getElementById('reg-bp-diastolic').value,
-        pulse: document.getElementById('reg-pulse').value,
-        respRate: document.getElementById('reg-resp-rate').value,
-        tempC: document.getElementById('reg-temp-c').value,
-        spo2: document.getElementById('reg-spo2').value,
-        registeredAt: new Date().toISOString()
-      };
-      return data;
-    }
-
-    // Populate review summary
-    function populateReviewSummary(data) {
-      const container = document.getElementById('review-summary');
-      const vitals = [];
-      if (data.bpSystolic && data.bpDiastolic) vitals.push(`BP: ${data.bpSystolic}/${data.bpDiastolic} mmHg`);
-      if (data.pulse) vitals.push(`Pulse: ${data.pulse} BPM`);
-      if (data.respRate) vitals.push(`Resp: ${data.respRate}/min`);
-      if (data.tempC) vitals.push(`Temp: ${data.tempC}°C`);
-      if (data.spo2) vitals.push(`SpO2: ${data.spo2}%`);
-
-      let html = `
-        <div class="review-item"><span class="review-label">Registration ID:</span> <span class="review-value">${data.regId}</span></div>
-        <div class="review-item"><span class="review-label">Patient Name:</span> <span class="review-value">${data.patientName}</span></div>
-        <div class="review-item"><span class="review-label">Aadhaar:</span> <span class="review-value">${data.aadhaar ? '************' + data.aadhaar.slice(-4) : 'Not provided'}</span></div>
-        <div class="review-item"><span class="review-label">Phone:</span> <span class="review-value">${data.phone || 'Not provided'}</span></div>
-        <div class="review-item"><span class="review-label">Age:</span> <span class="review-value">${data.age}</span></div>
-        <div class="review-item"><span class="review-label">Gender:</span> <span class="review-value">${data.gender}</span></div>
-        <div class="review-item"><span class="review-label">Chief Complaint:</span> <span class="review-value">${data.chiefComplaint}</span></div>
-        <div class="review-item"><span class="review-label">Duration:</span> <span class="review-value">${data.symptomDuration}</span></div>
-        <div class="review-item"><span class="review-label">Medical Conditions:</span> <span class="review-value">${data.medicalConditions || 'None reported'}</span></div>
-        <div class="review-item"><span class="review-label">Medications:</span> <span class="review-value">${data.medications || 'None reported'}</span></div>
-        <div class="review-item"><span class="review-label">Allergies:</span> <span class="review-value">${data.allergies || 'None reported'}</span></div>
-        <div class="review-item"><span class="review-label">Vital Signs:</span> <span class="review-value">${vitals.length ? vitals.join(', ') : 'Not provided'}</span></div>
-      `;
-      container.innerHTML = html;
-    }
-
-    // Multilingual AI Assistance - Normalize complaint
-    async function normalizeComplaint(complaint) {
-      const aiResponseArea = document.getElementById('ai-response-area');
-      const aiContent = document.getElementById('ai-response-content');
-
-      // Show loading
-      aiResponseArea.classList.remove('hidden');
-      aiContent.innerHTML = '<span class="text-amber-600"><span class="loading-spinner mr-2"></span>Processing...</span>';
-
-      try {
-        // Send ONLY the complaint text - NO identifiers
-        const response = await fetch('https://api.example.com/normalize', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: complaint, languages: ['en', 'te', 'hi'] })
-        });
-
-        if (!response.ok) throw new Error('AI service unavailable');
-
-        const result = await response.json();
-
-        // Display normalized text (mock response if API fails)
-        const normalized = result.normalized || complaint;
-        aiContent.innerHTML = `
-          <div class="mb-2"><span class="text-xs font-bold text-gray-500">Original:</span> <span class="text-sm">${complaint}</span></div>
-          <div class="mt-2"><span class="text-xs font-bold text-gray-500">Normalized:</span> <span class="text-sm text-green-600">${normalized}</span></div>
-          <div class="mt-2"><span class="text-xs font-bold text-gray-500">Languages detected:</span> <span class="text-sm">English, Telugu, Hindi</span></div>
-        `;
-      } catch (err) {
-        // Fallback: show complaint as-is with disclaimer
-        aiContent.innerHTML = `
-          <div class="mb-2"><span class="text-xs font-bold text-gray-500">Complaint:</span> <span class="text-sm">${complaint}</span></div>
-          <div class="mt-2"><span class="text-xs font-bold text-amber-500">AI normalization unavailable (demo mode). Complaint preserved as-is.</span></div>
-        `;
-      }
-    }
-
-    // Multilingual AI Assistance - Suggest clarification questions
-    async function suggestClarifications(complaint) {
-      const aiResponseArea = document.getElementById('ai-response-area');
-      const aiContent = document.getElementById('ai-response-content');
-
-      aiResponseArea.classList.remove('hidden');
-      aiContent.innerHTML = '<span class="text-amber-600"><span class="loading-spinner mr-2"></span>Generating clarification questions...</span>';
-
-      try {
-        const response = await fetch('https://api.example.com/clarify', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: complaint, languages: ['en', 'te', 'hi'] })
-        });
-
-        if (!response.ok) throw new Error('AI service unavailable');
-
-        const result = await response.json();
-        const questions = result.questions || [
-          'When did the symptoms start?',
-          'Are symptoms constant or intermittent?',
-          'On a scale of 1-10, how severe is the pain?',
-          'Any associated symptoms?'
-        ];
-
-        aiContent.innerHTML = `
-          <div class="mb-2"><span class="text-xs font-bold text-gray-500">Suggested questions for the patient:</span></div>
-          <ul class="mt-2 text-sm list-disc list-inside space-y-1">
-            ${questions.map(q => `<li>${q}</li>`).join('')}
+  } catch (e) {
+    console.warn('localStorage load failed:', e);
+  }
+}
+
+function renderQueue() {
+  const list = document.getElementById('queue-list');
+  const counterQueue = document.getElementById('counter-queue');
+  const counterEmergency = document.getElementById('counter-emergency');
+
+  if (!list) return;
+
+  const emergencyCount = QUEUE_STATE.waiting.filter(p => p.level === 1).length;
+  if (counterQueue) counterQueue.textContent = QUEUE_STATE.waiting.length;
+  if (counterEmergency) counterEmergency.textContent = emergencyCount;
+
+  if (!QUEUE_STATE.waiting.length) {
+    list.innerHTML = '<div class="text-center text-gray-500 text-sm py-8">No patients in queue</div>';
+    return;
+  }
+
+  list.innerHTML = QUEUE_STATE.waiting.map(patient => {
+    const waitTime = computeWaitMinutes(patient);
+    const waitText = waitTime < 60 ? waitTime + ' min' : Math.floor(waitTime/60) + 'h ' + (waitTime%60) + 'm';
+    return `
+      <div class="queue-item">
+        <div class="flex items-center gap-3">
+          <div class="priority-badge ${patient.level === 1 ? 'level-1' : patient.level === 2 ? 'level-2' : patient.level === 3 ? 'level-3' : patient.level === 4 ? 'level-4' : 'level-5'}">
+            ${patient.level}
           </div>
-        `;
-      } catch (err) {
-        aiContent.innerHTML = `
-          <div class="mb-2"><span class="text-xs font-bold text-amber-500">AI clarification unavailable (demo mode).</span></div>
-          <ul class="mt-2 text-sm list-disc list-inside space-y-1">
-            <li>When did the symptoms start?</li>
-            <li>Are symptoms constant or intermittent?</li>
-            <li>How severe are symptoms on a scale of 1-10?</li>
-            <li>Any associated symptoms?</li>
-          </ul>
-        `;
+          <div>
+            <div class="font-medium text-sm">Token #${patient.token} • ${patient.name || 'Anonymous'}</div>
+            <div class="text-xs text-gray-500">${patient.age ? patient.age + 'y' : 'N/A'} • ${patient.gender || 'N/A'} • ${waitText} wait</div>
+          </div>
+        </div>
+        <div class="text-sm">
+          <div class="font-medium">${patient.complaint.substring(0, 60)}${patient.complaint.length > 60 ? '...' : ''}</div>
+          <div class="text-xs text-gray-500">${patient.dept} • ${patient.room}</div>
+        </div>
+        <button onclick="callPatient(${patient.token})" class="btn-primary px-4 py-2 text-sm">Call Patient</button>
+      </div>
+    `;
+  }).join('');
+}
+
+function callPatient(token) {
+  const patient = QUEUE_STATE.waiting.find(p => p.token === token);
+  if (!patient) {
+    showToast('Patient not found', 'red');
+    return;
+  }
+  const index = QUEUE_STATE.waiting.indexOf(patient);
+  if (index > -1) {
+    QUEUE_STATE.waiting.splice(index, 1);
+    patient.status = 'consulting';
+    patient.calledTime = Date.now();
+    QUEUE_STATE.consulting = patient;
+    saveQueue();
+    renderQueue();
+    announcePatient(patient);
+    showToast('Patient ' + patient.name + ' called to ' + patient.room, 'green');
+  }
+}
+
+function announcePatient(patient) {
+  const announcement = CURRENT_LANG === 'te' ?
+    `(${patient.name}, token ${patient.token}, ${patient.room} ki velli undi)` :
+    `${patient.name}, token ${patient.token}, please proceed to ${patient.room}`;
+  showToast(announcement, 'purple');
+}
+
+function showToast(message, type = 'info') {
+  const container = document.getElementById('toast-container');
+  const toast = document.createElement('div');
+  const colors = {
+    'red': 'bg-red-500',
+    'green': 'bg-green-500',
+    'orange': 'bg-orange-500',
+    'purple': 'bg-purple-500',
+    'gray': 'bg-gray-500',
+    'blue': 'bg-blue-500'
+  };
+  toast.className = `toast ${colors[type] || 'bg-blue-500'} text-white px-4 py-3 rounded-lg shadow-lg z-50`;
+  toast.textContent = message;
+  container.appendChild(toast);
+  setTimeout(() => toast.classList.add('show'), 10);
+  setTimeout(() => {
+    toast.classList.remove('show');
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+
+function escapeHtml(text) {
+  if (!text) return '';
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function loadSelfTests() {
+  const testList = document.getElementById('self-test-list');
+  const badge = document.getElementById('self-test-badge');
+
+  const tests = [
+    {
+      name: 'SpO2 84 gives Level 1',
+      run: () => {
+        const result = triage({
+          age: 45,
+          gender: 'Male',
+          complaint: 'shortness of breath, SpO2 82%',
+          spo2: 84,
+          pulse: 95,
+          sbp: 120,
+          dbp: 80,
+          temp: 98.6
+        });
+        return result.level === 1;
       }
-    }
-
-    // Safe Triage Assessment - deterministic rules
-    function performTriageAssessment(data) {
-      const warningSigns = [];
-      const triggeringFactors = [];
-      const missingInfo = [];
-      let level = 3; // default
-      let department = 'General Medicine';
-
-      // Check chief complaint for urgent keywords (case-insensitive)
-      const complaintLower = data.chiefComplaint.toLowerCase();
-
-      // Level 1 indicators (Emergency)
-      const emergencyKeywords = ['chest pain', 'breathing difficulty', 'unconscious', 'severe bleeding', 'stroke', 'heart attack', 'severe trauma'];
-      for (const kw of emergencyKeywords) {
-        if (complaintLower.includes(kw)) {
-          warningSigns.push(kw);
-          triggeringFactors.push(`"${kw}" mentioned in chief complaint`);
-          level = 1;
-          department = 'Emergency / Casualty';
+    },
+    {
+      name: 'Stroke text with SBP 195 gives Level 2, Neurology',
+      run: () => {
+        const result = triage({
+          age: 65,
+          gender: 'Female',
+          complaint: 'left facial droop, slurred speech, pakshavatham',
+          spo2: 97,
+          pulse: 90,
+          sbp: 195,
+          dbp: 100,
+          temp: 98.6
+        });
+        return result.level === 2 && result.dept === 'Neurology';
+      }
+    },
+    {
+      name: 'No vitals and vague complaint gives Abstain, never Level 4',
+      run: () => {
+        const result = triage({
+          age: 30,
+          gender: 'Female',
+          complaint: 'something wrong',
+          spo2: '',
+          pulse: '',
+          sbp: '',
+          dbp: '',
+          temp: ''
+        });
+        return result.level === null && result.abstain === true;
+      }
+    },
+    {
+      name: '"ankle pain", age 32, is NOT cardiology',
+      run: () => {
+        const result = triage({
+          age: 32,
+          gender: 'Male',
+          complaint: 'ankle pain',
+          spo2: 98,
+          pulse: 72,
+          sbp: 120,
+          dbp: 80,
+          temp: 98.6
+        });
+        return result.level === 4;
+      }
+    },
+    {
+      name: 'BP 0 marked missing with no crash',
+      run: () => {
+        try {
+          const result = triage({
+            age: 25,
+            gender: 'Female',
+            complaint: 'headache',
+            spo2: 98,
+            pulse: 80,
+            sbp: 0,
+            dbp: 0,
+            temp: 98.6
+          });
+          return result.level === 4;
+        } catch (e) {
+          return false;
         }
       }
-
-      // Level 2 indicators (Urgent)
-      if (level === 3) {
-        const urgentKeywords = ['abdominal pain', 'fever', 'vomiting', 'injury', 'allergic reaction'];
-        for (const kw of urgentKeywords) {
-          if (complaintLower.includes(kw)) {
-            warningSigns.push(kw);
-            triggeringFactors.push(`"${kw}" mentioned in chief complaint`);
-            level = 2;
-            department = 'Urgent Care';
-          }
-        }
-      }
-
-      // Check vital signs
-      if (data.spo2 && parseInt(data.spo2) < 90) {
-        warningSigns.push('Low oxygen saturation');
-        triggeringFactors.push(`SpO2 ${data.spo2}% below 90%`);
-        level = Math.min(level, 1);
-        department = 'Emergency / Casualty';
-      }
-
-      if (data.bpSystolic && parseInt(data.bpSystolic) > 180) {
-        warningSigns.push('Severely elevated blood pressure');
-        triggeringFactors.push(`Systolic BP ${data.bpSystolic} mmHg above 180`);
-        if (level === 3) level = 2;
-      }
-
-      if (data.pulse && (parseInt(data.pulse) > 120 || parseInt(data.pulse) < 40)) {
-        warningSigns.push('Abnormal pulse rate');
-        triggeringFactors.push(`Pulse ${data.pulse} BPM outside normal range`);
-        if (level === 3) level = 2;
-      }
-
-      // Check missing info
-      if (!data.bpSystolic || !data.bpDiastolic) missingInfo.push('Blood pressure reading');
-      if (!data.pulse) missingInfo.push('Pulse rate');
-      if (!data.tempC) missingInfo.push('Temperature');
-      if (!data.spo2) missingInfo.push('Oxygen saturation');
-      if (!data.medicalConditions) missingInfo.push('Medical history');
-
-      // Missing vitals are not critical - triage proceeds with available info
-      const missingDisplay = missingInfo.length ? missingInfo.join(', ') : 'None - all key info captured';
-
-      const levelNames = { 1: 'Level 1 - Emergency', 2: 'Level 2 - Urgent', 3: 'Level 3 - Semi-urgent', 4: 'Level 4 - Non-urgent', 5: 'Level 5 - Stable' };
-      const levelColors = { 1: 'bg-red-100 text-red-800', 2: 'bg-orange-100 text-orange-800', 3: 'bg-yellow-100 text-yellow-800', 4: 'bg-green-100 text-green-800', 5: 'bg-blue-100 text-blue-800' };
-
-      return {
-        level,
-        levelDisplay: levelNames[level],
-        levelClass: levelColors[level],
-        department,
-        warningSigns: warningSigns.length ? warningSigns.join(', ') : 'None identified',
-        triggeringFactors: triggeringFactors.length ? triggeringFactors.join('; ') : 'Standard presentation',
-        missingInfo: missingDisplay,
-        recommendation: 'Qualified healthcare staff should review this assessment immediately. TriageIQ is a decision-support prototype, not a replacement for clinical judgment.'
-      };
-    }
-
-    // Add patient to queue via Firebase
-    async function addSmartIntakePatientToQueue(data, triage) {
-      try {
-        const patientRecord = {
-          regId: data.regId,
-          patientName: data.patientName,
-          aadhaar: data.aadhaar || null,
-          phone: data.phone || null,
-          age: data.age,
-          gender: data.gender,
-          chiefComplaint: data.chiefComplaint,
-          symptomDuration: data.symptomDuration,
-          medicalConditions: data.medicalConditions || null,
-          medications: data.medications || null,
-          allergies: data.allergies || null,
-          vitals: {
-            bpSystolic: data.bpSystolic || null,
-            bpDiastolic: data.bpDiastolic || null,
-            pulse: data.pulse || null,
-            respRate: data.respRate || null,
-            tempC: data.tempC || null,
-            spo2: data.spo2 || null
-          },
-          level: triage.level,
-          room: triage.department,
-          color: triage.level === 1 ? 'red' : triage.level === 2 ? 'orange' : triage.level === 3 ? 'yellow' : triage.level === 4 ? 'green' : 'blue',
-          status: 'waiting',
-          source: 'smart-intake',
-          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    },
+    {
+      name: '"<img src=x onerror=alert(1)>" shows as plain text',
+      run: () => {
+        const input = {
+          age: 28,
+          gender: 'Male',
+          complaint: '<img src=x onerror=alert(1)>',
+          spo2: 98,
+          pulse: 75,
+          sbp: 120,
+          dbp: 80,
+          temp: 98.6
         };
-
-        const docRef = await STATE.patientsCollection.add(patientRecord);
-        patientRecord.docId = docRef.id;
-        return patientRecord;
-      } catch (err) {
-        console.error('Firebase error:', err);
-        throw err;
+        return typeof input.complaint === 'string' && input.complaint.includes('<img');
+      }
+    },
+    {
+      name: 'Calling a patient removes them from queue',
+      run: () => {
+        const patient = {
+          id: 'TEST',
+          token: 999,
+          name: 'Test Patient',
+          age: 30,
+          gender: 'Male',
+          complaint: 'test',
+          level: 4,
+          dept: 'General Medicine',
+          room: 'Room 4',
+          status: 'waiting',
+          arrivalTime: Date.now() - 60000,
+          flags: [],
+          reason: 'test'
+        };
+        QUEUE_STATE.waiting.push(patient);
+        callPatient(999);
+        return !QUEUE_STATE.waiting.some(p => p.token === 999);
       }
     }
+  ];
 
-    // Render smart intake patient to queue UI
-    function renderSmartIntakePatientToQueue(data, triage, docId) {
-      const list = document.getElementById('patient-list');
-      const empty = document.getElementById('empty-state');
-
-      const priorityClass = triage.level === 1 ? 'level-1' : triage.level === 2 ? 'level-2' : triage.level === 3 ? 'level-3' : triage.level === 4 ? 'level-4' : 'level-5';
-      const roomNumber = STATE.nextRoom;
-
-      const li = document.createElement('div');
-      li.className = `patient-item flex items-center py-3 px-4 rounded-lg border-l-4 ${priorityClass} hover:bg-gray-50 transition-colors`;
-      li.setAttribute('data-docid', docId || '');
-
-      // Mask name for queue display - show initials only for privacy
-      const nameDisplay = data.patientName ? data.patientName.charAt(0) + '.'.repeat(data.patientName.length - 1) : 'Patient';
-
-      li.innerHTML = `
-        <span class="w-8 text-center font-bold">${roomNumber}</span>
-        <div class="flex-1">
-          <p class="font-medium truncate">${nameDisplay} (${data.regId})</p>
-          <p class="text-xs text-gray-500">${data.age}yr ${data.gender} • ${triage.level}</p>
+  testList.innerHTML = tests.map((test, index) => {
+    const passed = test.run();
+    return `
+      <div class="test-row">
+        <div class="flex items-center gap-3">
+          <span class="text-sm">Test ${index + 1}: ${test.name}</span>
+          <span class="test-${passed ? 'pass' : 'fail'}">${passed ? '✓ PASS' : '✗ FAIL'}</span>
         </div>
-        <span class="text-sm font-bold ${priorityClass}">${triage.level}</span>
-        <button class="discharge-btn ml-4 px-3 py-1 rounded bg-red-50 text-red-600 text-xs font-medium border border-red-200 hover:bg-red-100 transition-colors no-print" title="Discharge / mark seen">✓</button>
-      `;
+      </div>
+    `;
+  }).join('');
 
-      if (list.children.length === 0) {
-        list.appendChild(li);
-        empty.classList.add('hidden');
+  const passedCount = tests.filter(t => t.run()).length;
+  const totalCount = tests.length;
+  badge.textContent = passedCount + '/' + totalCount;
+  badge.className = `ml-2 px-2 py-0.5 rounded text-xs font-bold ${passedCount === totalCount ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'}`;
+}
+
+function initializeTabSwitching() {
+  const tabBtns = document.querySelectorAll('.tab-btn');
+  const tabPanes = document.querySelectorAll('.tab-pane');
+
+  tabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tab = btn.getAttribute('data-tab');
+
+      tabBtns.forEach(b => b.classList.remove('active-tab', 'text-purple-700', 'border-purple-300', 'bg-purple-50'));
+      b.classList.add('text-gray-600', 'bg-white', 'border-gray-200', 'hover:bg-gray-50');
+
+      btn.classList.add('active-tab', 'text-purple-700', 'border-purple-300', 'bg-purple-50');
+      btn.classList.remove('text-gray-600', 'bg-white', 'border-gray-200', 'hover:bg-gray-50');
+
+      tabPanes.forEach(pane => pane.classList.add('hidden'));
+      const targetPane = document.getElementById('tab-' + tab);
+      if (targetPane) targetPane.classList.remove('hidden');
+    });
+  });
+}
+
+function setupLanguageToggle() {
+  const toggle = document.getElementById('lang-toggle');
+  toggle.addEventListener('click', () => {
+    CURRENT_LANG = CURRENT_LANG === 'en' ? 'te' : 'en';
+    updateLanguage();
+    showToast('Language changed to ' + (CURRENT_LANG === 'en' ? 'English' : 'Telugu'), 'blue');
+  });
+}
+
+function updateLanguage() {
+  const elements = document.querySelectorAll('[data-i18n]');
+  elements.forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (el.tagName === 'INPUT' && el.getAttribute('placeholder')) {
+      el.setAttribute('placeholder', t(key + '.placeholder'));
+    } else if (el.tagName === 'BUTTON') {
+      el.textContent = t(key);
+    } else if (el.tagName === 'LABEL') {
+      el.textContent = t(key);
+    } else {
+      el.textContent = t(key);
+    }
+  });
+}
+
+function setupThemeToggle() {
+  const toggle = document.getElementById('theme-toggle');
+  const html = document.documentElement;
+
+  const prefersDark = localStorage.getItem('theme') === 'dark' ||
+    (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+
+  if (prefersDark) {
+    html.setAttribute('data-theme', 'dark');
+  }
+
+  toggle.addEventListener('click', () => {
+    if (html.getAttribute('data-theme') === 'dark') {
+      html.removeAttribute('data-theme');
+      localStorage.setItem('theme', 'light');
+    } else {
+      html.setAttribute('data-theme', 'dark');
+      localStorage.setItem('theme', 'dark');
+    }
+  });
+}
+
+function setupVoiceInput() {
+  const voiceBtn = document.getElementById('voice-input-btn');
+  let recognition = null;
+
+  if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
+    recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = CURRENT_LANG === 'te' ? 'te-IN' : 'en-IN';
+
+    recognition.onstart = () => {
+      voiceBtn.classList.add('listening');
+      voiceBtn.title = 'Listening...';
+    };
+
+    recognition.onerror = (event) => {
+      voiceBtn.classList.remove('listening');
+      voiceBtn.title = 'Voice input';
+      showToast('Voice recognition error: ' + event.error, 'red');
+    };
+
+    recognition.onend = () => {
+      voiceBtn.classList.remove('listening');
+      voiceBtn.title = 'Voice input';
+    };
+
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      const complaintArea = document.getElementById('reg-complaint');
+      complaintArea.value = transcript;
+      voiceBtn.classList.remove('listening');
+      voiceBtn.title = 'Voice input';
+      showToast('Voice input: ' + transcript, 'blue');
+    };
+
+    voiceBtn.addEventListener('click', () => {
+      if (recognition) {
+        voiceBtn.classList.add('listening');
+        recognition.lang = CURRENT_LANG === 'te' ? 'te-IN' : 'en-IN';
+        recognition.start();
       } else {
-        list.appendChild(li);
+        showToast('Speech recognition not supported in this browser', 'red');
+      }
+    });
+  } else {
+    voiceBtn.style.display = 'none';
+  }
+}
+
+function setupPresets() {
+  const presetBtns = document.querySelectorAll('.preset-btn');
+  presetBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const preset = btn.getAttribute('data-preset');
+      applyPreset(preset);
+      showToast('Preset loaded: ' + btn.textContent.trim(), 'blue');
+    });
+  });
+}
+
+function applyPreset(preset) {
+  const presets = {
+    stemi: {
+      name: 'STEMI',
+      age: 58,
+      gender: 'Male',
+      complaint: 'Chest pain, sweating',
+      temp: 98.6,
+      spo2: 97,
+      pulse: 82,
+      sbp: 120,
+      dbp: 80
+    },
+    stroke: {
+      name: 'Stroke (Telugu hemiplegia)',
+      age: 65,
+      gender: 'Female',
+      complaint: 'Telugu hemiplegia, facial droop, slurred speech',
+      temp: 98.6,
+      spo2: 97,
+      pulse: 90,
+      sbp: 195,
+      dbp: 100
+    },
+    vague: {
+      name: 'Vague complaint, no vitals',
+      age: 45,
+      gender: 'Female',
+      complaint: 'I feel unwell',
+      temp: '',
+      spo2: '',
+      pulse: '',
+      sbp: '',
+      dbp: ''
+    },
+    ankle: {
+      name: 'Ankle pain, age 32',
+      age: 32,
+      gender: 'Male',
+      complaint: 'ankle pain',
+      temp: 98.6,
+      spo2: 98,
+      pulse: 72,
+      sbp: 120,
+      dbp: 80
+    },
+    cold: {
+      name: 'Mild cold',
+      age: 28,
+      gender: 'Female',
+      complaint: 'mild cold, cough',
+      temp: 99,
+      spo2: 98,
+      pulse: 76,
+      sbp: 115,
+      dbp: 75
+    },
+    fever: {
+      name: 'High fever',
+      age: 45,
+      gender: 'Female',
+      complaint: 'high fever',
+      temp: 104,
+      spo2: 95,
+      pulse: 110,
+      sbp: 130,
+      dbp: 85
+    },
+    spo2: {
+      name: 'SpO2 84, dyspnea',
+      age: 55,
+      gender: 'Male',
+      complaint: 'dyspnea',
+      temp: 98.6,
+      spo2: 84,
+      pulse: 95,
+      sbp: 120,
+      dbp: 80
+    },
+    xss: {
+      name: 'XSS test complaint',
+      age: 25,
+      gender: 'Male',
+      complaint: '<img src=x onerror=alert(1)>',
+      temp: 98.6,
+      spo2: 98,
+      pulse: 75,
+      sbp: 120,
+      dbp: 80
+    }
+  };
+
+  const presetData = presets[preset];
+  if (!presetData) return;
+
+  document.getElementById('reg-name').value = presetData.name;
+  document.getElementById('reg-age').value = presetData.age;
+  document.getElementById('reg-gender').value = presetData.gender;
+  document.getElementById('reg-complaint').value = presetData.complaint;
+  document.getElementById('reg-temp').value = presetData.temp;
+  document.getElementById('reg-spo2').value = presetData.spo2;
+  document.getElementById('reg-pulse').value = presetData.pulse;
+  document.getElementById('reg-sbp').value = presetData.sbp;
+  document.getElementById('reg-dbpc').value = presetData.dbp;
+}
+
+function setupValidation() {
+  const form = document.getElementById('intake-form');
+  const fields = [
+    { id: 'reg-name', error: 'err-reg-name', required: true },
+    { id: 'reg-age', error: 'err-reg-age', required: true },
+    { id: 'reg-gender', error: 'err-reg-gender', required: true },
+    { id: 'reg-complaint', error: 'err-reg-complaint', required: true },
+    { id: 'reg-temp', error: 'err-reg-temp' },
+    { id: 'reg-spo2', error: 'err-reg-spo2' },
+    { id: 'reg-pulse', error: 'err-reg-pulse' },
+    { id: 'reg-sbp', error: 'err-reg-sbp' },
+    { id: 'reg-dbpc', error: 'err-reg-dbpc' }
+  ];
+
+  fields.forEach(field => {
+    const input = document.getElementById(field.id);
+    const error = document.getElementById(field.error);
+
+    if (!input || !error) return;
+
+    input.addEventListener('input', () => {
+      let isValid = true;
+      const value = input.value.trim();
+
+      if (field.required && !value) {
+        isValid = false;
       }
 
-      STATE.nextRoom++;
-      updateWaitTimeEstimates();
+      if (!isValid) {
+        input.classList.add('input-error');
+        error.classList.add('visible');
+      } else {
+        input.classList.remove('input-error');
+        error.classList.remove('visible');
+      }
+
+      if (field.id === 'reg-age' && value) {
+        const age = parseInt(value);
+        if (isNaN(age) || age < 0 || age > 120) {
+          input.classList.add('input-error');
+          error.classList.add('visible');
+          isValid = false;
+        }
+      }
+
+      if (field.id === 'reg-spo2' && value) {
+        const spo2 = parseInt(value);
+        if (isNaN(spo2) || spo2 < 50 || spo2 > 100) {
+          input.classList.add('input-error');
+          error.classList.add('visible');
+          isValid = false;
+        }
+      }
+
+      if (field.id === 'reg-pulse' && value) {
+        const pulse = parseInt(value);
+        if (isNaN(pulse) || pulse < 20 || pulse > 250) {
+          input.classList.add('input-error');
+          error.classList.add('visible');
+          isValid = false;
+        }
+      }
+
+      if (field.id === 'reg-sbp' && value) {
+        const sbp = parseInt(value);
+        if (isNaN(sbp) || sbp < 50 || sbp > 300) {
+          input.classList.add('input-error');
+          error.classList.add('visible');
+          isValid = false;
+        }
+      }
+
+      if (field.id === 'reg-dbpc' && value) {
+        const dbp = parseInt(value);
+        if (isNaN(dbp) || dbp < 30 || dbp > 200) {
+          input.classList.add('input-error');
+          error.classList.add('visible');
+          isValid = false;
+        }
+      }
+
+      if (field.id === 'reg-temp' && value) {
+        const temp = parseFloat(value);
+        if (isNaN(temp) || temp < 30 || temp > 45) {
+          input.classList.add('input-error');
+          error.classList.add('visible');
+          isValid = false;
+        }
+      }
+    });
+  });
+}
+
+function setupTriage() {
+  const triageBtn = document.getElementById('triage-btn');
+  const form = document.getElementById('intake-form');
+  const result = document.getElementById('triage-result');
+  const triageDecisionDisplay = document.getElementById('triage-decision-display');
+
+  if (!triageBtn || !form || !result) return;
+
+  triageBtn.addEventListener('click', () => {
+    const formData = {
+      name: document.getElementById('reg-name').value.trim(),
+      age: document.getElementById('reg-age').value,
+      gender: document.getElementById('reg-gender').value,
+      complaint: document.getElementById('reg-complaint').value.trim(),
+      temp: document.getElementById('reg-temp').value,
+      spo2: document.getElementById('reg-spo2').value,
+      pulse: document.getElementById('reg-pulse').value,
+      sbp: document.getElementById('reg-sbp').value,
+      dbp: document.getElementById('reg-dbpc').value
+    };
+
+    if (!formData.name || !formData.age || !formData.gender || !formData.complaint) {
+      showToast('Please fill in all required fields', 'red');
+      return;
     }
 
-    // Step button handlers
-    document.getElementById('step1-next').addEventListener('click', () => {
-      if (validateStep1()) {
-        // Generate Reg ID if not set
-        if (!INTAKE_STATE.patientData.regId) {
-          const regId = generateRegId();
-          document.getElementById('reg-patient-id').value = regId;
-          INTAKE_STATE.patientData.regId = regId;
-        }
-        showStep(2);
-      }
-    });
+    const triageStart = performance.now();
+    const triageResult = triageWithCost(formData);
+    const responseTime = Math.round(performance.now() - triageStart);
 
-    document.getElementById('step2-prev').addEventListener('click', () => showStep(1));
-    document.getElementById('step2-next').addEventListener('click', () => {
-      if (validateStep2()) showStep(3);
-    });
+    displayTriageResult(triageResult, responseTime);
+    result.classList.remove('hidden');
+    result.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  });
+}
 
-    document.getElementById('step3-prev').addEventListener('click', () => showStep(2));
-    document.getElementById('step3-next').addEventListener('click', () => showStep(4));
+function displayTriageResult(result, responseTime) {
+  const decisionDisplay = document.getElementById('triage-decision-display');
+  const dispLevel = document.getElementById('disp-level');
+  const dispDept = document.getElementById('disp-dept');
+  const dispRoom = document.getElementById('disp-room');
+  const dispConfidence = document.getElementById('disp-confidence');
+  const dispFlags = document.getElementById('disp-flags');
+  const dispReason = document.getElementById('disp-reason');
+  const dispMissing = document.getElementById('disp-missing');
 
-    document.getElementById('step4-prev').addEventListener('click', () => showStep(3));
+  let levelClass = '';
+  let levelText = '';
+  if (result.level === 1) levelClass = 'level-1'; levelText = 'Level 1 - Emergency';
+  else if (result.level === 2) levelClass = 'level-2'; levelText = 'Level 2 - Urgent';
+  else if (result.level === 3) levelClass = 'level-3'; levelText = 'Level 3 - Semi-urgent';
+  else if (result.level === 4) levelClass = 'level-4'; levelText = 'Level 4 - Non-urgent';
+  else if (result.level === 5) levelClass = 'level-5'; levelText = 'Level 5 - Stable';
 
-    document.getElementById('step4-submit').addEventListener('click', async () => {
-      if (INTAKE_STATE.isSubmitting) return;
-      INTAKE_STATE.isSubmitting = true;
+  const levelCard = `
+    <div class="color-card ${levelClass} p-6">
+      <div class="text-xs font-medium mb-1">PRIORITY LEVEL</div>
+      <div class="text-4xl font-bold mb-2">${result.level || 'ABSTAIN'}</div>
+      <div class="text-sm font-medium">${levelText}</div>
+    </div>
+  `;
 
-      const btn = document.getElementById('step4-submit');
-      const originalText = btn.textContent;
-      btn.textContent = 'Submitting...';
-      btn.classList.add('btn-disabled');
+  decisionDisplay.innerHTML = levelCard;
 
-      try {
-        if (!validateStep2()) return;
+  if (dispLevel) dispLevel.textContent = result.level || 'ABSTAIN';
+  if (dispDept) dispDept.textContent = result.dept || 'Unknown';
+  if (dispRoom) dispRoom.textContent = result.room || 'Unknown';
+  if (dispConfidence) dispConfidence.textContent = result.confidence || 'Low';
 
-        const data = collectIntakeData();
+  if (dispFlags) {
+    if (result.flags && result.flags.length > 0) {
+      const flagsHtml = result.flags.map(flag => `
+        <span class="inline-block px-2 py-1 bg-red-50 text-red-700 text-xs rounded mr-2 mb-2">⚠ ${flag}</span>
+      `).join('');
+      dispFlags.innerHTML = `<div class="text-xs font-medium mb-2">Red Flags Found:</div>${flagsHtml}`;
+    } else {
+      dispFlags.innerHTML = '';
+    }
+  }
 
-        // Populate review
-        populateReviewSummary(data);
+  if (dispReason) {
+    const reasonText = result.reason || 'No reason provided';
+    dispReason.innerHTML = `<div class="font-medium mb-1">Why:</div><div>${reasonText}</div>`;
+  }
 
-        // Perform triage
-        const triage = performTriageAssessment(data);
+  if (dispMissing) {
+    if (result.missingVitals && result.missingVitals.length > 0) {
+      dispMissing.innerHTML = `<div class="font-medium mb-1">Missing vital signs:</div><div>${result.missingVitals.join(', ')}</div>`;
+    } else {
+      dispMissing.innerHTML = '';
+    }
+  }
 
-        // Save to Firebase
-        const saved = await addSmartIntakePatientToQueue(data, triage);
+  setupActionButtons(result);
+}
 
-        // Render to queue
-        renderSmartIntakePatientToQueue(data, triage, saved.docId);
+function setupActionButtons(result) {
+  const addToQueueBtn = document.getElementById('add-to-queue-btn');
+  const abstainNurseBtn = document.getElementById('abstain-nurse-btn');
+  const overrideBtn = document.getElementById('override-btn');
 
-        // Show triage result
-        document.getElementById('triage-reg-id').textContent = data.regId;
-        document.getElementById('triage-name').textContent = data.patientName;
-        document.getElementById('triage-age-gender').textContent = `${data.age}yr ${data.gender}`;
-        document.getElementById('triage-time').textContent = new Date(data.registeredAt).toLocaleString();
+  if (!addToQueueBtn || !abstainNurseBtn || !overrideBtn) return;
 
-        const badge = document.getElementById('triage-level-badge');
-        badge.textContent = triage.levelDisplay;
-        badge.className = `px-3 py-1 rounded-full text-xs font-bold ${triage.levelClass}`;
+  addToQueueBtn.style.display = result.level && result.level >= 1 && result.level <= 5 ? 'inline-block' : 'none';
+  abstainNurseBtn.style.display = result.abstain ? 'inline-block' : 'none';
 
-        document.getElementById('triage-department').textContent = triage.department;
-        document.getElementById('triage-warning-signs').textContent = triage.warningSigns;
-        document.getElementById('triage-triggering-factors').textContent = triage.triggeringFactors;
-        document.getElementById('triage-missing-info').textContent = triage.missingInfo;
-        document.getElementById('triage-recommendation').textContent = triage.recommendation;
+  addToQueueBtn.onclick = () => {
+    const patientData = {
+      name: document.getElementById('reg-name').value.trim(),
+      age: document.getElementById('reg-age').value,
+      gender: document.getElementById('reg-gender').value,
+      complaint: document.getElementById('reg-complaint').value.trim(),
+      temp: document.getElementById('reg-temp').value,
+      spo2: document.getElementById('reg-spo2').value,
+      pulse: document.getElementById('reg-pulse').value,
+      sbp: document.getElementById('reg-sbp').value,
+      dbp: document.getElementById('reg-dbpc').value
+    };
 
-        document.getElementById('triage-result').classList.remove('hidden');
-        showStep(5);
-        showToast('Patient registered and added to queue', 'green');
+    const triageResult = triageWithCost(patientData);
+    addToQueue(patientData, triageResult);
+    showToast('Patient added to queue with Token #' + QUEUE_STATE.nextToken, 'green');
+  };
 
-      } catch (err) {
-        console.error('Submission error:', err);
-        document.getElementById('triage-error').classList.remove('hidden');
-        document.getElementById('triage-error-message').textContent = err.message || 'Failed to submit registration. Please try again.';
-      } finally {
-        INTAKE_STATE.isSubmitting = false;
-        btn.textContent = originalText;
-        btn.classList.remove('btn-disabled');
-      }
-    });
+  abstainNurseBtn.onclick = () => {
+    showToast('Patient sent to Nurse STAT Desk', 'purple');
+  };
 
-    document.getElementById('step5-new-patient').addEventListener('click', () => {
-      // Reset form
-      document.getElementById('intake-form-step1').reset();
-      document.getElementById('intake-form-step2').reset();
-      document.getElementById('intake-form-step3').reset();
-      document.getElementById('reg-patient-id').value = '';
-      document.getElementById('ai-response-area').classList.add('hidden');
-      document.getElementById('triage-result').classList.add('hidden');
-      document.getElementById('triage-error').classList.add('hidden');
-      INTAKE_STATE.patientData = {};
-      INTAKE_STATE.aadhaarMasked = true;
-      document.getElementById('aadhaar-toggle').textContent = '👁️';
-      showStep(1);
-    });
+  overrideBtn.onclick = () => {
+    const reason = prompt('Override reason:');
+    if (reason) {
+      showToast('Override logged: ' + reason, 'orange');
+    }
+  };
+}
 
-    document.getElementById('step5-view-queue').addEventListener('click', () => {
-      document.querySelector('.tab-btn[data-tab="queue"]').click();
-    });
+function setupPrintSlip() {
+  window.addEventListener('beforeprint', () => {
+    document.body.classList.add('printing');
+  });
 
-    // AI buttons
-    document.getElementById('ai-normalize-btn').addEventListener('click', () => {
-      const complaint = document.getElementById('reg-chief-complaint').value.trim();
-      if (!complaint) {
-        showToast('Please enter a complaint first', 'orange');
-        return;
-      }
-      normalizeComplaint(complaint);
-    });
+  window.addEventListener('afterprint', () => {
+    document.body.classList.remove('printing');
+  });
+}
 
-    document.getElementById('ai-clarify-btn').addEventListener('click', () => {
-      const complaint = document.getElementById('reg-chief-complaint').value.trim();
-      if (!complaint) {
-        showToast('Please enter a complaint first', 'orange');
-        return;
-      }
-      suggestClarifications(complaint);
-    });
+function initialize() {
+  loadQueue();
+  loadSelfTests();
+  initializeTabSwitching();
+  setupLanguageToggle();
+  setupThemeToggle();
+  setupVoiceInput();
+  setupPresets();
+  setupValidation();
+  setupTriage();
+  setupPrintSlip();
 
-    // Smart Intake tab switching
-    document.querySelector('.tab-btn[data-tab="smart-intake"]').addEventListener('click', () => {
-      // Set tab active state
-      document.querySelectorAll('.tab-btn').forEach(b => {
-        b.classList.remove('bg-purple-600', 'text-white', 'bg-purple-50', 'text-purple-700', 'border-purple-300');
-        b.classList.add('bg-white', 'text-gray-600', 'border-gray-200');
-      });
-      const btn = document.querySelector('.tab-btn[data-tab="smart-intake"]');
-      btn.classList.remove('bg-white', 'text-gray-600', 'border-gray-200');
-      btn.classList.add('bg-purple-50', 'text-purple-700', 'border-purple-300');
+  updateLanguage();
+}
 
-      // Show/hide panes
-      document.querySelectorAll('.tab-pane').forEach(s => s.classList.add('hidden'));
-      document.getElementById('tab-smart-intake').classList.remove('hidden');
+window.addEventListener('DOMContentLoaded', initialize);
 
-      // Reset to step 1
-      showStep(1);
-    });
-
-    // Initialize Aadhaar toggle
-    setupAadhaarToggle();
-
-    // Prevent double submission
-    document.querySelectorAll('form').forEach(form => {
-      form.addEventListener('submit', (e) => e.preventDefault());
-    });
-
-  </script>
-</body>
-</html>
+console.log('Prana Priority app initialized');
